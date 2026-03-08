@@ -49,13 +49,19 @@ impl Default for AppSettings {
     }
 }
 
+impl AppSettings {
+    pub fn api_key(&self, provider: &str) -> Option<&str> {
+        self.api_keys.get(provider).and_then(|value| value.as_str())
+    }
+}
+
 fn parse_value<T: serde::de::DeserializeOwned>(raw: Option<&String>, default: T) -> T {
     raw.and_then(|value| serde_json::from_str::<T>(value).ok())
         .unwrap_or(default)
 }
 
 // settings 表底层是 KV 结构，这里在命令层把它还原为前端可直接消费的完整配置对象。
-fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSettings, String> {
+pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSettings, String> {
     migration::run_migrations(app)?;
     let conn = connection::open_app_db(app)?;
     let mut stmt = conn

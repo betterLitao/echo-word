@@ -1,5 +1,5 @@
-import { Waveform } from '@phosphor-icons/react'
-import type { TranslationResult } from '../../lib/tauri'
+import { Copy, Waveform } from '@phosphor-icons/react'
+import { getResultProviderLabel, type TranslationResult } from '../../lib/tauri'
 import { StatusPill } from '../ui/StatusPill'
 
 interface WordResultProps {
@@ -13,8 +13,9 @@ export function WordResult({ data }: WordResultProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap gap-2">
-              <StatusPill icon={<Waveform size={14} weight="duotone" />} label={data.provider.toUpperCase()} tone="accent" />
+              <StatusPill icon={<Waveform size={14} weight="duotone" />} label={getResultProviderLabel(data)} tone="accent" />
               <StatusPill label="单词模式" />
+              {data.from_cache ? <StatusPill icon={<Copy size={14} weight="duotone" />} label="缓存命中" /> : null}
             </div>
             <h2 className="mt-4 text-[2rem] font-semibold tracking-tight text-white">{data.source_text}</h2>
           </div>
@@ -32,6 +33,7 @@ export function WordResult({ data }: WordResultProps) {
       </div>
       <div className="rounded-[1.45rem] border border-white/10 bg-white/[0.04] p-4 text-sm leading-7 text-slate-200">
         <p>{data.translated_text}</p>
+        {data.notice ? <p className="mt-3 text-xs leading-6 text-slate-400">{data.notice}</p> : null}
         {data.word_detail?.definitions?.length ? (
           <div className="mt-4 divide-y divide-white/8 rounded-[1rem] border border-white/8 bg-black/20">
             {data.word_detail.definitions.map((item) => (

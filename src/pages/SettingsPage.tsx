@@ -1,10 +1,10 @@
-import { Database, GearSix, Key, Lightning } from '@phosphor-icons/react'
+import { Database, GearSix, Key, Lightning, Translate } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
-import { TranslationWorkbench } from '../components/settings/TranslationWorkbench'
 import { DictionaryTab } from '../components/settings/DictionaryTab'
 import { GeneralTab } from '../components/settings/GeneralTab'
 import { ShortcutTab } from '../components/settings/ShortcutTab'
 import { TranslationTab } from '../components/settings/TranslationTab'
+import { TranslationWorkbench } from '../components/settings/TranslationWorkbench'
 import { Button } from '../components/ui/Button'
 import { PageHero } from '../components/ui/PageHero'
 import { StatusPill } from '../components/ui/StatusPill'
@@ -37,13 +37,13 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHero
-        description="设置页被重构成主工作台：上面是当前阶段的调试入口，下面是按能力分组的配置模块。标题左对齐，右侧只保留必要的状态和阶段标签。"
+        description="设置页现在同时承担输入翻译工作台的职责：除了配置项，还能直接验证自动模式、句子翻译布局和 provider / 缓存提示。"
         eyebrow="Settings Center"
-        title="配置不是附属页面，而是当前开发阶段的主控面板。"
+        title="把输入翻译、配置与状态提示放进同一个工作台，而不是拆成互相割裂的页面。"
         meta={
           <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-            <StatusPill icon={<Lightning size={14} weight="fill" />} label="Cycle 02" tone="accent" />
-            <StatusPill icon={<Database size={14} weight="duotone" />} label="SQLite Ready" />
+            <StatusPill icon={<Lightning size={14} weight="fill" />} label="Cycle 03 Frontend" tone="accent" />
+            <StatusPill icon={<Translate size={14} weight="duotone" />} label="Sentence Flow Ready" />
           </div>
         }
       />

@@ -14,8 +14,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+lru = "0.12"
 log = "0.4"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls", "socks"] }
 rusqlite = { version = "0.31", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = ["tray-icon"] }
+tiny_http = "0.12"

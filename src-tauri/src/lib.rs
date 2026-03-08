@@ -1,6 +1,7 @@
 mod api;
 mod commands;
 mod db;
+mod http_server;
 mod services;
 mod utils;
 
@@ -71,10 +72,13 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             // 启动顺序先做基础设施初始化：
-            // 数据库 -> 托盘 -> 窗口行为。这样后续命令调用才有稳定运行环境。
+            // 数据库 -> 托盘 -> 窗口行为 -> 本地 HTTP API。这样后续命令调用才有稳定运行环境。
             db::migration::run_migrations(&app.handle())?;
             build_tray(app)?;
             wire_main_window(app);
+
+            let settings = commands::settings::load_settings_from_db(&app.handle())?;
+            http_server::start_http_server(settings.http_api_port, app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -86,9 +90,13 @@ pub fn run() {
             commands::settings::hide_popup,
             commands::settings::show_main_window,
             commands::translate::translate,
+            commands::translate::translate_and_show_popup,
+            commands::translate::request_input_translate,
+            commands::translate::request_selection_translate,
             commands::favorite::add_favorite,
             commands::favorite::remove_favorite,
             commands::favorite::get_favorites,
+            commands::history::get_history,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run EchoWord application")
