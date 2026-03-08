@@ -35,13 +35,12 @@ export function OnboardingPage() {
           <div className="space-y-5">
             <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">Ready</p>
             <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">基础引导已完成，接下来进入主工作台。</h2>
-            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">Cycle 01 完成窗口、设置和引导骨架；Cycle 02 已接通离线词典和收藏闭环。后续会继续推进句子翻译与系统触发方式。</p>
+            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在主应用已经串起离线单词、在线句子、快捷键、输入弹层、收藏和历史列表。进入设置页后你可以继续微调 Provider、代理、多引擎和系统行为。</p>
           </div>
         )
     }
   }, [permissionGranted, stepIndex])
 
-  // 引导完成后直接跳过，避免每次启动都重新进入 onboarding。
   if (settings.onboarding_completed) {
     return <Navigate to="/settings" replace />
   }
@@ -71,14 +70,14 @@ export function OnboardingPage() {
               <p className="text-xs uppercase tracking-[0.24em] text-slate-500">你会获得</p>
               <div className="mt-4 space-y-4 text-sm leading-7 text-slate-300">
                 <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>更干净的权限与首次启动流程</span></div>
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>离线单词翻译、谐音与收藏闭环</span></div>
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>后续可平滑扩展到快捷键、句子翻译和自动划词</span></div>
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>离线单词、在线句子、收藏和历史闭环</span></div>
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>可继续扩展到快捷键、HTTP API 和更多 Provider</span></div>
               </div>
             </div>
             <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <p className="text-xs uppercase tracking-[0.24em] text-slate-500">当前阶段</p>
-              <p className="mt-4 text-2xl font-semibold tracking-tight text-white">Cycle 02</p>
-              <p className="mt-3 text-sm leading-7 text-slate-400">UI 骨架、离线词典、弹窗和收藏链路都已开始成形。</p>
+              <p className="mt-4 text-2xl font-semibold tracking-tight text-white">Cycle 06</p>
+              <p className="mt-3 text-sm leading-7 text-slate-400">主链路和系统入口都已接好，后续重点是继续增强平台能力和更多翻译源。</p>
             </div>
           </div>
         </section>
@@ -97,7 +96,6 @@ export function OnboardingPage() {
                 icon={<Monitor size={16} weight="duotone" />}
                 variant="secondary"
                 onClick={() => {
-                  // 跳过引导本质上也是一次显式完成，先写入状态，再回到主设置页。
                   void updateSetting('onboarding_completed', true)
                   navigate('/settings', { replace: true })
                 }}
@@ -109,7 +107,6 @@ export function OnboardingPage() {
                 variant="primary"
                 onClick={() => {
                   if (isLastStep) {
-                    // 最后一步与“跳过引导”共用同一份完成逻辑，保证状态一致。
                     void updateSetting('onboarding_completed', true)
                     navigate('/settings', { replace: true })
                     return

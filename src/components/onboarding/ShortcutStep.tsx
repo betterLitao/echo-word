@@ -9,11 +9,11 @@ export function ShortcutStep() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">快捷键预览</h2>
-        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">本周期先完成配置展示与持久化，下一阶段会在 Rust 侧完成系统级注册、冲突检测和触发链路。</p>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">全局快捷键已经接到系统注册。你现在看到的就是实际生效的组合键，后续可以在设置页继续调整。</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <StatusPill icon={<Keyboard size={14} weight="duotone" />} label="系统快捷键待接入" tone="muted" />
+        <StatusPill icon={<Keyboard size={14} weight="duotone" />} label="系统快捷键已接入" tone="accent" />
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">

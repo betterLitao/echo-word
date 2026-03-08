@@ -18,8 +18,11 @@ interface TranslationState {
   resolvedMode: ResolvedTranslationMode | null
   providerHint: string | null
   statusNote: string | null
+  focusNonce: number
   setInput: (input: string) => void
   setMode: (mode: TranslationMode) => void
+  requestFocus: () => void
+  primeInput: (input: string, mode?: TranslationMode) => void
   applyResult: (result: TranslationResult, requestedMode?: TranslationMode) => void
   translate: (text?: string, requestedMode?: TranslationMode) => Promise<TranslationResult | null>
   translateCurrentMode: (mode: TranslationMode) => Promise<TranslationResult | null>
@@ -31,6 +34,10 @@ function buildEmptyInputMessage(mode: TranslationMode) {
   return mode === 'word' ? '请输入要翻译的英文单词' : '请输入要翻译的文本'
 }
 
+function buildAutoModeNote(mode: TranslationMode) {
+  return mode === 'auto' ? '自动模式会根据空格数量判断是单词还是句子。' : null
+}
+
 export const useTranslationStore = create<TranslationState>((set, get) => ({
   input: 'This feature keeps your focus inside the editor.',
   result: null,
@@ -40,14 +47,30 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
   resolvedMode: null,
   providerHint: null,
   statusNote: '自动模式会根据输入内容在单词与句子之间切换。',
+  focusNonce: 0,
   setInput: (input) => set({ input }),
   setMode: (mode) => {
     const input = get().input
     set({
       mode,
       resolvedMode: resolveTranslationMode(mode, input),
-      statusNote: mode === 'auto' ? '自动模式会根据空格数量判断是单词还是句子。' : null,
+      statusNote: buildAutoModeNote(mode),
     })
+  },
+  requestFocus: () => set((state) => ({ focusNonce: state.focusNonce + 1 })),
+  primeInput: (input, requestedMode) => {
+    const nextMode = requestedMode ?? get().mode
+    set((state) => ({
+      input,
+      mode: nextMode,
+      result: null,
+      error: null,
+      loading: false,
+      providerHint: null,
+      resolvedMode: resolveTranslationMode(nextMode, input),
+      statusNote: buildAutoModeNote(nextMode),
+      focusNonce: state.focusNonce + 1,
+    }))
   },
   applyResult: (result, requestedMode) => {
     const nextMode = requestedMode ?? get().mode
@@ -100,5 +123,13 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
   seedDemo: () => {
     void get().translate(get().input, 'auto')
   },
-  clear: () => set({ result: null, loading: false, error: null, providerHint: null, statusNote: null, resolvedMode: null }),
+  clear: () =>
+    set({
+      result: null,
+      loading: false,
+      error: null,
+      providerHint: null,
+      statusNote: null,
+      resolvedMode: null,
+    }),
 }))

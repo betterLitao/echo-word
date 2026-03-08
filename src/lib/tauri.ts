@@ -13,6 +13,14 @@ export interface WordDetail {
   pos?: string | null
 }
 
+export interface SentenceAlternative {
+  provider: string
+  provider_label?: string | null
+  translated_text: string
+  from_cache?: boolean
+  notice?: string | null
+}
+
 export interface TranslationResult {
   source_text: string
   translated_text: string
@@ -22,6 +30,7 @@ export interface TranslationResult {
   word_detail?: WordDetail | null
   from_cache?: boolean
   notice?: string | null
+  alternatives?: SentenceAlternative[]
 }
 
 export interface FavoriteItem {
@@ -32,6 +41,15 @@ export interface FavoriteItem {
   translation: string
   source_text?: string | null
   created_at?: string | null
+}
+
+export interface HistoryItem {
+  id: number
+  source_text: string
+  result_text: string
+  mode: string
+  provider?: string | null
+  created_at: string
 }
 
 export interface Settings {
@@ -129,6 +147,13 @@ const demoSentenceDictionary: Record<string, TranslationResult> = {
     provider_label: 'DeepL 演示结果',
     mode: 'sentence',
     notice: '已按句子模式解析',
+    alternatives: [
+      {
+        provider: 'tencent',
+        provider_label: '腾讯演示结果',
+        translated_text: '这个特性会让你的注意力持续留在编辑器里。',
+      },
+    ],
   },
   'the cache should prevent duplicate requests.': {
     source_text: 'The cache should prevent duplicate requests.',
@@ -174,18 +199,14 @@ function buildDemoSentence(text: string, requestedMode: TranslationMode): Transl
   }
 }
 
-export function getResultProviderLabel(result: TranslationResult) {
+export function getResultProviderLabel(result: Pick<TranslationResult, 'provider' | 'provider_label'>) {
   return result.provider_label ?? result.provider.toUpperCase()
 }
 
-// 浏览器模式下用来兜底，方便先开发前端骨架而不强依赖 Tauri 运行时。
 export function isTauriRuntime() {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
 
-// 对所有 IPC 调用做一层统一封装：
-// 1. 在 Tauri 中走真实命令；
-// 2. 在纯前端调试时回落到默认值，保证页面可独立联调。
 async function safeInvoke<T>(command: string, args?: Record<string, unknown>, fallback?: T): Promise<T> {
   if (!isTauriRuntime()) {
     if (fallback !== undefined) {
@@ -245,6 +266,22 @@ export async function showMainWindow() {
   await invoke('show_main_window')
 }
 
+export async function requestInputTranslate() {
+  if (!isTauriRuntime()) {
+    return
+  }
+
+  await invoke('request_input_translate')
+}
+
+export async function requestSelectionTranslate() {
+  if (!isTauriRuntime()) {
+    return
+  }
+
+  await invoke('request_selection_translate')
+}
+
 export async function translateText(text: string, mode: TranslationMode = 'auto') {
   const normalized = text.trim().toLowerCase()
   if (!isTauriRuntime()) {
@@ -267,6 +304,14 @@ export async function translateText(text: string, mode: TranslationMode = 'auto'
   return invoke<TranslationResult>('translate', { text, mode })
 }
 
+export async function translateAndShowPopup(text: string, mode: TranslationMode = 'auto') {
+  if (!isTauriRuntime()) {
+    return translateText(text, mode)
+  }
+
+  return invoke<TranslationResult>('translate_and_show_popup', { text, mode })
+}
+
 export async function addFavorite(item: FavoriteItem) {
   if (!isTauriRuntime()) {
     return
@@ -283,8 +328,12 @@ export async function removeFavorite(word: string) {
   await invoke('remove_favorite', { word })
 }
 
-export function getFavorites(query = '') {
-  return safeInvoke<FavoriteItem[]>('get_favorites', { query }, [])
+export function getFavorites(query = '', page = 1, pageSize = 20) {
+  return safeInvoke<FavoriteItem[]>('get_favorites', { query, page, pageSize }, [])
+}
+
+export function getHistory(query = '', page = 1, pageSize = 20) {
+  return safeInvoke<HistoryItem[]>('get_history', { query, page, pageSize }, [])
 }
 
 // 主窗口与弹窗窗口各自维护状态，这里通过 app 级事件广播翻译结果，
@@ -296,4 +345,24 @@ export async function pushPopupResult(result: TranslationResult) {
 
   await emit('translation-result', result)
   await showPopup()
+}
+
+export function speakText(text: string, lang = 'en-US') {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    return false
+  }
+
+  const content = text.trim()
+  if (!content) {
+    return false
+  }
+
+  const utterance = new SpeechSynthesisUtterance(content)
+  utterance.lang = lang
+  utterance.rate = 0.95
+  utterance.pitch = 1
+
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(utterance)
+  return true
 }

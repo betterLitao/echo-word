@@ -1,11 +1,11 @@
 import { Lightning, Monitor } from '@phosphor-icons/react'
+import { checkAccessibility, openAccessibilitySettings } from '../../lib/tauri'
 import { Button } from '../ui/Button'
 import { StatusPill } from '../ui/StatusPill'
-import { checkAccessibility, openAccessibilitySettings } from '../../lib/tauri'
 
 interface PermissionStepProps {
   permissionGranted: boolean
-  onChecked: (value: boolean) => void
+  onChecked: (granted: boolean) => void
 }
 
 export function PermissionStep({ permissionGranted, onChecked }: PermissionStepProps) {
@@ -13,7 +13,7 @@ export function PermissionStep({ permissionGranted, onChecked }: PermissionStepP
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">系统权限</h2>
-        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">为支持“选中即翻译”，后续需要读取系统辅助功能权限。本周期先打通检测与跳转通路，让引导流程完整可演示。</p>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">辅助功能权限会影响“选中即翻译”等更深的系统集成能力。当前已经接入真实检测和跳转链路。</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -30,7 +30,7 @@ export function PermissionStep({ permissionGranted, onChecked }: PermissionStepP
       </div>
 
       <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 text-sm leading-7 text-slate-400">
-        当前状态：{permissionGranted ? '系统已返回授权状态，可以继续后续接入自动划词能力。' : '尚未授权，当前环境也可能暂不支持直接检测。'}
+        当前状态：{permissionGranted ? '系统已返回授权状态，可以继续接入更深的自动划词能力。' : '尚未授权，当前环境也可能暂不支持直接检测。'}
       </div>
     </div>
   )

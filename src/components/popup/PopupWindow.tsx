@@ -1,6 +1,6 @@
 import { Sparkle, Translate } from '@phosphor-icons/react'
 import { listen } from '@tauri-apps/api/event'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   addFavorite,
   getResultProviderLabel,
@@ -9,6 +9,7 @@ import {
   type TranslationMode,
   type TranslationResult,
 } from '../../lib/tauri'
+import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
 import { ModeSwitch } from '../translation/ModeSwitch'
 import { StatusPill } from '../ui/StatusPill'
@@ -28,47 +29,134 @@ export function PopupWindow() {
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
   const [favoriteLabel, setFavoriteLabel] = useState('收藏')
+  const [copyLabel, setCopyLabel] = useState('复制')
+  const [actionHint, setActionHint] = useState<string | null>(null)
+
+  const canFavorite = useMemo(() => result?.mode === 'word', [result])
 
   useEffect(() => {
-    // 在浏览器里继续走演示数据；在 Tauri 中则监听主窗口广播过来的翻译结果。
     if (!isTauriRuntime()) {
       seedDemo()
       return
     }
 
-    let unlisten: (() => void) | undefined
+    let unlistenResult: (() => void) | undefined
+    let unlistenError: (() => void) | undefined
+
     void listen<TranslationResult>('translation-result', (event) => {
       setFavoriteLabel('收藏')
+      setCopyLabel('复制')
+      setActionHint(null)
       applyResult(event.payload)
     }).then((fn) => {
-      unlisten = fn
+      unlistenResult = fn
     })
 
-    return () => unlisten?.()
+    void listen<{ message: string }>('translation-error', (event) => {
+      setActionHint(event.payload.message)
+    }).then((fn) => {
+      unlistenError = fn
+    })
+
+    return () => {
+      unlistenResult?.()
+      unlistenError?.()
+    }
   }, [applyResult, seedDemo])
 
   useEffect(() => {
-    // 先把 Esc 关闭能力接上，后续真正接入 Tauri 弹窗时可直接复用。
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         void hidePopup()
+        return
+      }
+
+      if (!result) {
+        return
+      }
+
+      if (event.key === '1') {
+        setMode('word')
+        void translateCurrentMode('word')
+      }
+
+      if (event.key === '2') {
+        setMode('sentence')
+        void translateCurrentMode('sentence')
+      }
+
+      if (event.key.toLowerCase() === 'c') {
+        void navigator.clipboard.writeText(result.translated_text).then(() => setCopyLabel('已复制'))
+      }
+
+      if (event.key.toLowerCase() === 'f' && canFavorite) {
+        void addFavorite({
+          word: result.source_text,
+          phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
+          chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
+          translation: result.translated_text,
+          source_text: result.source_text,
+        }).then(() => setFavoriteLabel('已收藏'))
+      }
+
+      if (event.key.toLowerCase() === 'r') {
+        try {
+          speakText(result.source_text)
+          setActionHint('正在朗读原文')
+        } catch (speakerError) {
+          setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [canFavorite, result, setMode, translateCurrentMode])
 
   const handleModeChange = (nextMode: TranslationMode) => {
     setMode(nextMode)
-
-    // 弹窗切换模式时直接拿当前输入再次触发翻译，
-    // 这样“手动切换单词/句子”在主窗口和弹窗里保持一致。
     void translateCurrentMode(nextMode)
   }
 
+  const handleFavorite = () => {
+    if (!result || result.mode !== 'word') {
+      return
+    }
+
+    void addFavorite({
+      word: result.source_text,
+      phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
+      chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
+      translation: result.translated_text,
+      source_text: result.source_text,
+    }).then(() => {
+      setFavoriteLabel('已收藏')
+      setActionHint('已加入收藏列表')
+    })
+  }
+
+  const handleSpeak = () => {
+    if (!result) {
+      return
+    }
+
+    try {
+      speakText(result.source_text)
+      setActionHint('正在朗读原文')
+    } catch (speakerError) {
+      setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
+    }
+  }
+
   return (
-    <div className="min-h-[100dvh] bg-transparent p-4 text-slate-50">
+    <div
+      className="min-h-[100dvh] bg-transparent p-4 text-slate-50"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          void hidePopup()
+        }
+      }}
+    >
       <div className="relative mx-auto max-w-[400px] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(2,6,23,0.82))] p-5 shadow-[0_32px_90px_-40px_rgba(2,6,23,0.96)] backdrop-blur-2xl">
         <div className="pointer-events-none absolute inset-px rounded-[1.9rem] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
 
@@ -99,31 +187,29 @@ export function PopupWindow() {
         {!loading && !error && result ? <div className="relative">{result.mode === 'word' ? <WordResult data={result} /> : <SentenceResult data={result} />}</div> : null}
         {!loading && !error && !result ? <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果…</div> : null}
 
-        {result && statusNote ? (
+        {result && (statusNote || actionHint) ? (
           <div className="relative mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-3 text-xs leading-6 text-slate-400">
-            {getResultProviderLabel(result)} · {statusNote}
+            {getResultProviderLabel(result)} · {actionHint ?? statusNote}
           </div>
         ) : null}
 
         <div className="relative mt-5 border-t border-white/10 pt-4">
           <ActionBar
             copyDisabled={!result}
+            copyLabel={copyLabel}
             favoriteLabel={favoriteLabel}
-            showFavorite={result?.mode === 'word'}
-            onCopy={() => result ? void navigator.clipboard.writeText(result.translated_text) : undefined}
-            onFavorite={() => {
-              if (!result || result.mode !== 'word') {
+            showFavorite={canFavorite}
+            onCopy={() => {
+              if (!result) {
                 return
               }
-
-              void addFavorite({
-                word: result.source_text,
-                phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
-                chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
-                translation: result.translated_text,
-                source_text: result.source_text,
-              }).then(() => setFavoriteLabel('已收藏'))
+              void navigator.clipboard.writeText(result.translated_text).then(() => {
+                setCopyLabel('已复制')
+                setActionHint('译文已复制到剪贴板')
+              })
             }}
+            onFavorite={handleFavorite}
+            onSpeak={handleSpeak}
             onClose={() => void hidePopup()}
           />
         </div>
