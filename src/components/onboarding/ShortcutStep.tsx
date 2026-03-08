@@ -1,20 +1,32 @@
+import { Keyboard, Lightning } from '@phosphor-icons/react'
+import { StatusPill } from '../ui/StatusPill'
 import { useSettingsStore } from '../../stores/settingsStore'
 
 export function ShortcutStep() {
   const settings = useSettingsStore((state) => state.settings)
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold text-white">快捷键预览</h2>
-      <p className="text-sm leading-7 text-slate-300">本周期先配置展示与持久化，后续会在 Rust 侧完成系统级注册。</p>
-      <div className="grid max-w-2xl gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
-          <p className="text-slate-400">翻译快捷键</p>
-          <p className="mt-2 font-medium">{settings.shortcut_translate}</p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">快捷键预览</h2>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">本周期先完成配置展示与持久化，下一阶段会在 Rust 侧完成系统级注册、冲突检测和触发链路。</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <StatusPill icon={<Keyboard size={14} weight="duotone" />} label="系统快捷键待接入" tone="muted" />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[1.6rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">翻译快捷键</p>
+          <div className="mt-4 flex items-center justify-between gap-4">
+            <p className="text-lg font-semibold text-white">{settings.shortcut_translate}</p>
+            <Lightning size={18} weight="duotone" className="text-emerald-200" />
+          </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
-          <p className="text-slate-400">输入翻译快捷键</p>
-          <p className="mt-2 font-medium">{settings.shortcut_input}</p>
+        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">输入翻译快捷键</p>
+          <p className="mt-4 text-lg font-semibold text-white">{settings.shortcut_input}</p>
         </div>
       </div>
     </div>

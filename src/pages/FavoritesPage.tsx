@@ -1,6 +1,12 @@
+import { HeartStraight, MagnifyingGlass, Sparkle } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
-import { getFavorites, type FavoriteItem } from '../lib/tauri'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { Field, fieldControlClassName } from '../components/ui/Field'
+import { PageHero } from '../components/ui/PageHero'
 import { SectionCard } from '../components/ui/SectionCard'
+import { StatusPill } from '../components/ui/StatusPill'
+import { getFavorites, type FavoriteItem } from '../lib/tauri'
 
 export function FavoritesPage() {
   const [query, setQuery] = useState('')
@@ -21,29 +27,55 @@ export function FavoritesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-medium text-emerald-300">收藏</p>
-        <h2 className="mt-2 text-3xl font-semibold">收藏列表</h2>
-      </div>
-      <SectionCard title="离线单词收藏" description="当前支持最小查询能力，后续 Cycle 05 会继续补搜索体验、分页和批量管理。">
-        <div className="space-y-4">
-          <input className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-slate-100" placeholder="搜索单词或释义" value={query} onChange={(event) => setQuery(event.target.value)} />
+      <PageHero
+        description="收藏页延续同一套设计语言：标题不居中，内容采用纵向节奏和列表分隔，而不是机械的等宽卡片阵列。"
+        eyebrow="Favorites"
+        title="把真正值得反复看的单词，留在一个更安静的列表里。"
+        meta={<StatusPill icon={<HeartStraight size={14} weight="fill" />} label={`${items.length} 条收藏`} tone="accent" />}
+      />
 
-          {loading ? <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">正在读取收藏…</div> : null}
-          {!loading && items.length === 0 ? <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-300">当前暂无收藏数据。你可以先在设置页的“单词翻译调试台”翻译一个单词，再发送到弹窗或直接收藏。</div> : null}
+      <SectionCard title="离线单词收藏" description="搜索先走词面和释义字段，便于快速回看你已保存的单词与谐音。">
+        <div className="space-y-5">
+          <Field label="检索收藏" description="支持按单词或中文释义模糊搜索。">
+            <div className="relative">
+              <MagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} weight="duotone" />
+              <input className={`${fieldControlClassName} pl-11`} placeholder="例如 ephemeral / 短暂" value={query} onChange={(event) => setQuery(event.target.value)} />
+            </div>
+          </Field>
+
+          {loading ? (
+            <div className="grid gap-3">
+              <div className="h-28 animate-pulse rounded-[1.5rem] bg-white/[0.04]" />
+              <div className="h-28 animate-pulse rounded-[1.5rem] bg-white/[0.04]" />
+            </div>
+          ) : null}
+
+          {!loading && items.length === 0 ? (
+            <EmptyState
+              action={<Button icon={<Sparkle size={16} weight="duotone" />} variant="secondary">前往设置页继续调试</Button>}
+              description="当前还没有收藏记录。你可以先在设置页的“单词翻译调试台”翻译一个单词，再发送到弹窗或直接收藏。"
+              icon={<HeartStraight size={22} weight="duotone" />}
+              title="收藏列表还没有内容"
+            />
+          ) : null}
+
           {!loading && items.length > 0 ? (
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div key={`${item.word}-${item.id ?? 'item'}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{item.word}</h3>
-                      <p className="mt-2 text-sm text-slate-300">{item.phonetic ?? '暂无音标'} · {item.chinese_phonetic ?? '暂无谐音'}</p>
-                      <p className="mt-3 text-sm leading-7 text-slate-200">{item.translation}</p>
+            <div className="divide-y divide-white/8 rounded-[1.5rem] border border-white/10 bg-black/20">
+              {items.map((item, index) => (
+                <article key={`${item.word}-${item.id ?? 'item'}`} className="grid gap-4 px-5 py-5 md:grid-cols-[minmax(0,1fr)_auto]" style={{ animationDelay: `${index * 90}ms` }}>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="text-xl font-semibold tracking-tight text-white">{item.word}</h3>
+                      <StatusPill icon={<HeartStraight size={12} weight="fill" />} label="已收藏" tone="accent" />
                     </div>
-                    <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">{item.created_at ?? '已保存'}</span>
+                    <p className="mt-3 text-sm leading-7 text-slate-400">{item.phonetic ?? '暂无音标'} · {item.chinese_phonetic ?? '暂无谐音'}</p>
+                    <p className="mt-4 text-sm leading-8 text-slate-200">{item.translation}</p>
                   </div>
-                </div>
+                  <div className="md:text-right">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Created</p>
+                    <p className="mt-2 text-sm text-slate-300">{item.created_at ?? '刚刚保存'}</p>
+                  </div>
+                </article>
               ))}
             </div>
           ) : null}

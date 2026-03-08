@@ -1,3 +1,6 @@
+import { Key, Lightning } from '@phosphor-icons/react'
+import { Field, fieldControlClassName } from '../ui/Field'
+import { StatusPill } from '../ui/StatusPill'
 import { useSettingsStore } from '../../stores/settingsStore'
 
 export function ApiKeyStep() {
@@ -5,13 +8,22 @@ export function ApiKeyStep() {
   const updateSetting = useSettingsStore((state) => state.updateSetting)
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold text-white">翻译源预配置</h2>
-      <p className="text-sm leading-7 text-slate-300">当前仅用于验证设置持久化，真实翻译 API 接入将在 `Cycle 03` 完成。</p>
-      <label className="flex max-w-xl flex-col gap-2 text-sm text-slate-200">
-        DeepL API Key
-        <input className="rounded-2xl border border-white/10 bg-slate-950 px-4 py-3" value={settings.api_keys.deepl ?? ''} onChange={(event) => void updateSetting('api_keys', { ...settings.api_keys, deepl: event.target.value })} />
-      </label>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">翻译源预配置</h2>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">当前仅用于验证设置持久化与页面样式，真实在线 Provider 会在后续周期正式接入。</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <StatusPill icon={<Lightning size={14} weight="duotone" />} label="DeepL 准备中" tone="accent" />
+      </div>
+
+      <Field label="DeepL API Key" description="先保存到本地设置中，后续周期会接入加密存储。">
+        <div className="relative">
+          <Key className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} weight="duotone" />
+          <input className={`${fieldControlClassName} pl-11`} placeholder="输入你的 API Key" value={settings.api_keys.deepl ?? ''} onChange={(event) => void updateSetting('api_keys', { ...settings.api_keys, deepl: event.target.value })} />
+        </div>
+      </Field>
     </div>
   )
 }

@@ -1,16 +1,25 @@
+import { ClockCounterClockwise, Lightning } from '@phosphor-icons/react'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageHero } from '../components/ui/PageHero'
 import { SectionCard } from '../components/ui/SectionCard'
+import { StatusPill } from '../components/ui/StatusPill'
 
 export function HistoryPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-medium text-emerald-300">历史记录</p>
-        <h2 className="mt-2 text-3xl font-semibold">历史页面骨架</h2>
-      </div>
-      <SectionCard title="等待 Cycle 05" description="历史记录属于体验增强功能，本周期先完成路由、布局和占位，保证页面入口稳定。">
-        <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-300">
-          后续会在这里展示翻译历史、筛选与分页能力。
-        </div>
+      <PageHero
+        description="历史记录还未正式接入，但页面风格先与主工作台保持一致：轻玻璃容器、分层信息和偏左的内容重心。"
+        eyebrow="History"
+        title="未来的翻译轨迹，会在这里沉淀成可回看的工作上下文。"
+        meta={<StatusPill icon={<Lightning size={14} weight="duotone" />} label="Cycle 05" tone="muted" />}
+      />
+
+      <SectionCard title="历史记录模块" description="当前作为占位页存在，后续会接入筛选、分页和结果回放能力。">
+        <EmptyState
+          description="完成句子翻译、快捷键和剪贴板监听后，历史记录会成为用户回看上下文的重要入口。"
+          icon={<ClockCounterClockwise size={22} weight="duotone" />}
+          title="历史尚未开始积累"
+        />
       </SectionCard>
     </div>
   )

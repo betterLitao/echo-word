@@ -1,3 +1,6 @@
+import { Lightning, Monitor } from '@phosphor-icons/react'
+import { Button } from '../ui/Button'
+import { StatusPill } from '../ui/StatusPill'
 import { checkAccessibility, openAccessibilitySettings } from '../../lib/tauri'
 
 interface PermissionStepProps {
@@ -7,18 +10,28 @@ interface PermissionStepProps {
 
 export function PermissionStep({ permissionGranted, onChecked }: PermissionStepProps) {
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold text-white">系统权限</h2>
-      <p className="text-sm leading-7 text-slate-300">为支持“选中即翻译”，后续需要读取系统辅助功能权限。本周期已先打通检测和跳转接口。</p>
-      <div className="flex flex-wrap gap-3">
-        <button className="rounded-full bg-emerald-400 px-5 py-3 text-sm font-medium text-slate-950" onClick={() => void checkAccessibility().then(onChecked)}>
-          检测权限状态
-        </button>
-        <button className="rounded-full border border-white/10 px-5 py-3 text-sm text-slate-200" onClick={() => void openAccessibilitySettings()}>
-          打开系统设置
-        </button>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">系统权限</h2>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">为支持“选中即翻译”，后续需要读取系统辅助功能权限。本周期先打通检测与跳转通路，让引导流程完整可演示。</p>
       </div>
-      <p className="text-sm text-slate-400">当前状态：{permissionGranted ? '已授权' : '未授权或当前环境不支持'}</p>
+
+      <div className="flex flex-wrap gap-2">
+        <StatusPill icon={<Lightning size={14} weight="fill" />} label={permissionGranted ? '已授权' : '待授权'} tone={permissionGranted ? 'accent' : 'muted'} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <Button icon={<Lightning size={16} weight="duotone" />} variant="primary" onClick={() => void checkAccessibility().then(onChecked)}>
+          检测权限状态
+        </Button>
+        <Button icon={<Monitor size={16} weight="duotone" />} variant="secondary" onClick={() => void openAccessibilitySettings()}>
+          打开系统设置
+        </Button>
+      </div>
+
+      <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 text-sm leading-7 text-slate-400">
+        当前状态：{permissionGranted ? '系统已返回授权状态，可以继续后续接入自动划词能力。' : '尚未授权，当前环境也可能暂不支持直接检测。'}
+      </div>
     </div>
   )
 }
