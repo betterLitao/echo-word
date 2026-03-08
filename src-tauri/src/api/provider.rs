@@ -22,5 +22,10 @@ pub trait WordLookupProvider {
 
 pub trait SentenceTranslateProvider {
     fn id(&self) -> &'static str;
-    fn translate(&self, text: &str, api_key: Option<&str>) -> Result<SentenceTranslation, String>;
+    fn translate(
+        &self,
+        text: &str,
+        api_key: Option<&str>,
+        proxy: Option<&str>,
+    ) -> Result<SentenceTranslation, String>;
 }

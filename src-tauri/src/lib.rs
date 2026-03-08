@@ -11,8 +11,6 @@ use tauri::{
     Manager,
 };
 
-// 托盘是桌面常驻应用的核心入口：
-// 即使主窗口关闭，也能从托盘重新唤起应用。
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
@@ -49,8 +47,6 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
-// 主窗口默认拦截关闭事件，改为隐藏到托盘，
-// 这和 PRD 中“常驻后台而非直接退出”的行为保持一致。
 fn wire_main_window(app: &tauri::App) {
     if let Some(window) = app.get_webview_window("main") {
         let app_handle = app.handle().clone();
@@ -71,14 +67,22 @@ fn wire_main_window(app: &tauri::App) {
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
-            // 启动顺序先做基础设施初始化：
-            // 数据库 -> 托盘 -> 窗口行为 -> 本地 HTTP API。这样后续命令调用才有稳定运行环境。
             db::migration::run_migrations(&app.handle())?;
             build_tray(app)?;
             wire_main_window(app);
 
+            app.handle().plugin(
+                tauri_plugin_global_shortcut::Builder::new()
+                    .with_handler(|app, shortcut, event| {
+                        services::runtime::handle_shortcut_event(app, &shortcut, event.state());
+                    })
+                    .build(),
+            )?;
+            let _ = services::runtime::refresh_global_shortcuts(&app.handle());
+
             let settings = commands::settings::load_settings_from_db(&app.handle())?;
             http_server::start_http_server(settings.http_api_port, app.handle().clone());
+            services::clipboard::start_clipboard_watcher(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

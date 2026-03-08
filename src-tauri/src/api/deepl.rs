@@ -14,6 +14,18 @@ struct DeepLResponse {
     translations: Vec<DeepLTranslationItem>,
 }
 
+fn build_client(proxy: Option<&str>) -> Result<reqwest::blocking::Client, String> {
+    let mut builder = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10));
+
+    if let Some(proxy) = proxy.filter(|value| !value.trim().is_empty()) {
+        builder = builder
+            .proxy(reqwest::Proxy::all(proxy).map_err(|error| error.to_string())?);
+    }
+
+    builder.build().map_err(|error| error.to_string())
+}
+
 impl DeepLProvider {
     fn development_fallback(text: &str) -> SentenceTranslation {
         SentenceTranslation {
@@ -28,7 +40,12 @@ impl SentenceTranslateProvider for DeepLProvider {
         "deepl"
     }
 
-    fn translate(&self, text: &str, api_key: Option<&str>) -> Result<SentenceTranslation, String> {
+    fn translate(
+        &self,
+        text: &str,
+        api_key: Option<&str>,
+        proxy: Option<&str>,
+    ) -> Result<SentenceTranslation, String> {
         let Some(api_key) = api_key.filter(|value| !value.trim().is_empty()) else {
             if cfg!(debug_assertions) {
                 return Ok(Self::development_fallback(text));
@@ -36,11 +53,7 @@ impl SentenceTranslateProvider for DeepLProvider {
             return Err("未配置 DeepL API Key".into());
         };
 
-        let client = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .map_err(|error| error.to_string())?;
-
+        let client = build_client(proxy)?;
         let response = client
             .post("https://api-free.deepl.com/v2/translate")
             .form(&[

@@ -16,7 +16,12 @@ impl SentenceTranslateProvider for BaiduProvider {
         "baidu"
     }
 
-    fn translate(&self, text: &str, api_key: Option<&str>) -> Result<SentenceTranslation, String> {
+    fn translate(
+        &self,
+        text: &str,
+        api_key: Option<&str>,
+        _proxy: Option<&str>,
+    ) -> Result<SentenceTranslation, String> {
         if cfg!(debug_assertions) {
             return Ok(Self::development_fallback(text));
         }

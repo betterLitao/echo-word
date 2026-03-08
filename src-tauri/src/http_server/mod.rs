@@ -4,9 +4,9 @@ use std::thread;
 
 use serde::Deserialize;
 use serde_json::json;
-use tauri::Emitter;
 use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
+use crate::commands;
 use crate::services::translator::{self, TranslationMode};
 
 static SERVER_STARTED: OnceLock<()> = OnceLock::new();
@@ -79,13 +79,17 @@ fn handle_translate(mut request: Request, app: &tauri::AppHandle) {
 }
 
 fn handle_selection_trigger(request: Request, app: &tauri::AppHandle) {
-    let _ = app.emit("selection-translate-requested", json!({ "source": "http-api" }));
-    respond_json(request, json!({ "ok": true }), StatusCode(200));
+    match commands::translate::request_selection_translate(app.clone()) {
+        Ok(()) => respond_json(request, json!({ "ok": true }), StatusCode(200)),
+        Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
+    }
 }
 
 fn handle_input_trigger(request: Request, app: &tauri::AppHandle) {
-    let _ = app.emit("input-translate-requested", json!({ "source": "http-api" }));
-    respond_json(request, json!({ "ok": true }), StatusCode(200));
+    match commands::translate::request_input_translate(app.clone()) {
+        Ok(()) => respond_json(request, json!({ "ok": true }), StatusCode(200)),
+        Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
+    }
 }
 
 // 本地 HTTP API 只监听 127.0.0.1，

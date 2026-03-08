@@ -1,9 +1,13 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::Manager;
+use tauri_plugin_global_shortcut::Shortcut;
 
 use crate::db::{connection, migration};
-use crate::utils::platform;
+use crate::services::runtime;
+use crate::utils::{crypto, platform};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -77,15 +81,21 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| error.to_string())?;
 
-    let map = pairs.into_iter().collect::<std::collections::HashMap<String, String>>();
+    let map = pairs
+        .into_iter()
+        .collect::<std::collections::HashMap<String, String>>();
     let defaults = AppSettings::default();
+    let api_keys = crypto::decrypt_api_keys(
+        app,
+        parse_value(map.get("api_keys"), defaults.api_keys.clone()),
+    );
 
     Ok(AppSettings {
         shortcut_translate: parse_value(map.get("shortcut_translate"), defaults.shortcut_translate),
         shortcut_input: parse_value(map.get("shortcut_input"), defaults.shortcut_input),
         translation_provider: parse_value(map.get("translation_provider"), defaults.translation_provider),
         fallback_chain: parse_value(map.get("fallback_chain"), defaults.fallback_chain),
-        api_keys: parse_value(map.get("api_keys"), defaults.api_keys),
+        api_keys,
         theme: parse_value(map.get("theme"), defaults.theme),
         data_dir: parse_value(map.get("data_dir"), defaults.data_dir),
         privacy_mode: parse_value(map.get("privacy_mode"), defaults.privacy_mode),
@@ -105,16 +115,44 @@ pub fn get_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
     load_settings_from_db(&app)
 }
 
+fn validate_shortcut_value(key: &str, value: &Value) -> Result<(), String> {
+    if key != "shortcut_translate" && key != "shortcut_input" {
+        return Ok(());
+    }
+
+    let shortcut = value
+        .as_str()
+        .ok_or_else(|| "快捷键配置必须是字符串".to_string())?;
+    Shortcut::from_str(shortcut)
+        .map(|_| ())
+        .map_err(|error| format!("快捷键格式无效：{}", error))
+}
+
 #[tauri::command]
 pub fn update_setting(app: tauri::AppHandle, key: String, value: Value) -> Result<(), String> {
-    // 统一使用 JSON 字符串落库，便于后续存储数组、对象等复杂配置。
+    validate_shortcut_value(&key, &value)?;
+
+    // API Key 在设置层先做轻量加密，避免以明文直接落库；
+    // 将来若接入系统钥匙串，这里仍然可以保持同一调用入口。
+    let stored_value = if key == "api_keys" {
+        crypto::encrypt_api_key_map(&app, value)
+    } else {
+        value
+    };
+    let stored_json = stored_value.to_string();
+
     migration::run_migrations(&app)?;
     let conn = connection::open_app_db(&app)?;
     conn.execute(
         "INSERT INTO settings (key, value) VALUES (?1, ?2) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')",
-        rusqlite::params![key, value.to_string()],
+        rusqlite::params![&key, stored_json],
     )
     .map_err(|error| error.to_string())?;
+
+    if matches!(key.as_str(), "shortcut_translate" | "shortcut_input") {
+        runtime::refresh_global_shortcuts(&app)?;
+    }
+
     Ok(())
 }
 
@@ -130,7 +168,6 @@ pub fn open_accessibility_settings() -> Result<(), String> {
 
 #[tauri::command]
 pub fn show_popup(app: tauri::AppHandle) -> Result<(), String> {
-    // Cycle 01 先打通窗口控制命令，后续翻译完成后只需要补事件和定位逻辑。
     let window = app
         .get_webview_window("popup")
         .ok_or_else(|| "popup window not found".to_string())?;
