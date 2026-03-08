@@ -3,3 +3,4 @@ pub mod deepl;
 pub mod ecdict;
 pub mod provider;
 pub mod tencent;
+pub mod openai;
