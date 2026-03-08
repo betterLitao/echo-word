@@ -11,14 +11,14 @@ export function ApiKeyStep() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">翻译源预配置</h2>
-        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">句子翻译链路已经接好，这里填写的 Key 会以非明文形式存到本地设置，并直接用于后续在线 Provider。</p>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">DeepL 句子翻译链路已经可用，腾讯与百度作为备用 Provider 会按降级链尝试。API Key 会先经过本地轻量加密再写入数据库，避免直接明文落库。</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <StatusPill icon={<Lightning size={14} weight="duotone" />} label="DeepL / 腾讯 / 百度" tone="accent" />
+        <StatusPill icon={<Lightning size={14} weight="duotone" />} label="在线句子翻译已接通" tone="accent" />
       </div>
 
-      <Field label="DeepL API Key" description="保存后即可参与句子翻译与降级链。">
+      <Field label="DeepL API Key" description="先保存到本地设置中，系统会在句子翻译时自动读取。">
         <div className="relative">
           <Key className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} weight="duotone" />
           <input className={`${fieldControlClassName} pl-11`} placeholder="输入你的 API Key" value={settings.api_keys.deepl ?? ''} onChange={(event) => void updateSetting('api_keys', { ...settings.api_keys, deepl: event.target.value })} />

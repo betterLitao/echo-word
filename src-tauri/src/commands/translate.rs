@@ -1,7 +1,6 @@
 use tauri::{Emitter, Manager};
-use tauri_plugin_clipboard_manager::ClipboardExt;
-
 use crate::services::translator::{self, TranslationMode, TranslationResult};
+use crate::utils::platform;
 
 fn resolve_mode(mode: Option<String>) -> TranslationMode {
     match mode.as_deref() {
@@ -56,7 +55,7 @@ pub(crate) fn request_selection_translate_internal(
     app: tauri::AppHandle,
     source: &str,
 ) -> Result<(), String> {
-    let text = app.clipboard().read_text().map_err(|error| error.to_string())?;
+    let text = platform::read_clipboard_text()?;
     let trimmed = text.trim();
 
     if trimmed.is_empty() {

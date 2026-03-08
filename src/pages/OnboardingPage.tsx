@@ -35,7 +35,7 @@ export function OnboardingPage() {
           <div className="space-y-5">
             <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">Ready</p>
             <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">基础引导已完成，接下来进入主工作台。</h2>
-            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在主应用已经串起离线单词、在线句子、快捷键、输入弹层、收藏和历史列表。进入设置页后你可以继续微调 Provider、代理、多引擎和系统行为。</p>
+            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在你已经具备离线单词翻译、句子翻译、收藏、历史回放、系统快捷键与本地 HTTP API 的完整基础能力。后续可继续按需开启剪贴板监听和多引擎对照。</p>
           </div>
         )
     }
@@ -61,7 +61,7 @@ export function OnboardingPage() {
               先把关键入口整理清楚，再让翻译体验自然地接管日常工作流。
             </h1>
             <p className="mt-6 max-w-[62ch] text-base leading-8 text-slate-300">
-              这份引导页不走居中大按钮套路，而是用左右分区来承接“产品说明”和“操作步骤”。左侧解释为什么存在，右侧才负责动作推进。
+              这份引导页不走居中大按钮套路，而是用左右分区来承接“产品说明”和“操作步骤”。左侧解释为什么存在，右侧负责动作推进。
             </p>
           </div>
 
@@ -70,14 +70,14 @@ export function OnboardingPage() {
               <p className="text-xs uppercase tracking-[0.24em] text-slate-500">你会获得</p>
               <div className="mt-4 space-y-4 text-sm leading-7 text-slate-300">
                 <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>更干净的权限与首次启动流程</span></div>
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>离线单词、在线句子、收藏和历史闭环</span></div>
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>可继续扩展到快捷键、HTTP API 和更多 Provider</span></div>
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>离线单词、句子翻译、收藏与历史回放闭环</span></div>
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>系统快捷键、本地 HTTP API 与剪贴板监听入口</span></div>
               </div>
             </div>
             <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <p className="text-xs uppercase tracking-[0.24em] text-slate-500">当前阶段</p>
-              <p className="mt-4 text-2xl font-semibold tracking-tight text-white">Cycle 06</p>
-              <p className="mt-3 text-sm leading-7 text-slate-400">主链路和系统入口都已接好，后续重点是继续增强平台能力和更多翻译源。</p>
+              <p className="mt-4 text-2xl font-semibold tracking-tight text-white">Cycle 05</p>
+              <p className="mt-3 text-sm leading-7 text-slate-400">P0 主链路已收口，P1 高频体验正在补齐到“长期可开着用”的状态。</p>
             </div>
           </div>
         </section>

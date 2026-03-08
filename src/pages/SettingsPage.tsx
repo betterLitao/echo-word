@@ -5,7 +5,6 @@ import { GeneralTab } from '../components/settings/GeneralTab'
 import { ShortcutTab } from '../components/settings/ShortcutTab'
 import { TranslationTab } from '../components/settings/TranslationTab'
 import { TranslationWorkbench } from '../components/settings/TranslationWorkbench'
-import { InputTranslateDialog } from '../components/translation/InputTranslateDialog'
 import { Button } from '../components/ui/Button'
 import { PageHero } from '../components/ui/PageHero'
 import { StatusPill } from '../components/ui/StatusPill'
@@ -38,19 +37,19 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHero
-        description="设置页现在同时承担输入翻译工作台的职责：除了配置项，还能直接验证自动模式、句子翻译、多引擎对照和 Provider / 缓存提示。"
+        description="设置页现在同时承担输入翻译工作台、系统入口和状态面板职责：除了配置项，还能直接验证快捷键、历史回放、句子翻译与缓存提示。"
         eyebrow="Settings Center"
-        title="把输入翻译、配置与系统状态放进同一个工作台，而不是拆成互相割裂的页面。"
+        title="把输入翻译、配置与状态提示放进同一个工作台，而不是拆成互相割裂的页面。"
         meta={
           <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-            <StatusPill icon={<Lightning size={14} weight="fill" />} label="Cycle 06 Runtime" tone="accent" />
-            <StatusPill icon={<Translate size={14} weight="duotone" />} label="Sentence & Compare Ready" />
+            <StatusPill icon={<Lightning size={14} weight="fill" />} label="Cycle 05" tone="accent" />
+            <StatusPill icon={<Translate size={14} weight="duotone" />} label="Sentence Flow Ready" />
+            <StatusPill icon={<Key size={14} weight="duotone" />} label="Shortcut Ready" />
           </div>
         }
       />
 
       <TranslationWorkbench />
-      <InputTranslateDialog />
 
       <div className="flex flex-wrap gap-3">
         {tabs.map((tab) => {

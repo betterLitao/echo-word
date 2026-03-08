@@ -9,7 +9,7 @@ export function ShortcutStep() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.1rem]">快捷键预览</h2>
-        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">全局快捷键已经接到系统注册。你现在看到的就是实际生效的组合键，后续可以在设置页继续调整。</p>
+        <p className="mt-4 max-w-[58ch] text-sm leading-8 text-slate-400">当前版本已经支持系统快捷键注册；即使在浏览器调试模式下，也会自动降级为应用内快捷键，保证操作路径与正式桌面版一致。</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
