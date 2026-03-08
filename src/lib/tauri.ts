@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { emit } from '@tauri-apps/api/event'
 
 export type Theme = 'system' | 'light' | 'dark'
 export type TranslationMode = 'auto' | 'word' | 'sentence'
@@ -17,6 +18,16 @@ export interface TranslationResult {
   provider: string
   mode: Exclude<TranslationMode, 'auto'>
   word_detail?: WordDetail | null
+}
+
+export interface FavoriteItem {
+  id?: number | null
+  word: string
+  phonetic?: string | null
+  chinese_phonetic?: string | null
+  translation: string
+  source_text?: string | null
+  created_at?: string | null
 }
 
 export interface Settings {
@@ -57,8 +68,37 @@ export const defaultSettings: Settings = {
   multi_engine_list: [],
 }
 
+const demoDictionary: Record<string, TranslationResult> = {
+  ephemeral: {
+    source_text: 'ephemeral',
+    translated_text: 'adj. 短暂的；转瞬即逝的',
+    provider: 'ecdict',
+    mode: 'word',
+    word_detail: {
+      phonetic_us: '/ɪˈfemərəl/',
+      phonetic_uk: '/ɪˈfemərəl/',
+      chinese_phonetic: '一 · 飞 · 摸 · 若 · 了',
+      definitions: ['adj. 短暂的', 'adj. 转瞬即逝的'],
+      pos: 'adj.',
+    },
+  },
+  think: {
+    source_text: 'think',
+    translated_text: 'v. 想；思考；认为',
+    provider: 'ecdict',
+    mode: 'word',
+    word_detail: {
+      phonetic_us: '/θɪŋk/',
+      phonetic_uk: '/θɪŋk/',
+      chinese_phonetic: '[θ咬舌送气] · 一 · 嗯 · 克',
+      definitions: ['v. 想', 'v. 思考', 'v. 认为'],
+      pos: 'v.',
+    },
+  },
+}
+
 // 浏览器模式下用来兜底，方便先开发前端骨架而不强依赖 Tauri 运行时。
-function isTauriRuntime() {
+export function isTauriRuntime() {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
 
@@ -122,4 +162,51 @@ export async function showMainWindow() {
   }
 
   await invoke('show_main_window')
+}
+
+export async function translateText(text: string, mode: TranslationMode = 'auto') {
+  const normalized = text.trim().toLowerCase()
+  if (!isTauriRuntime()) {
+    const result = demoDictionary[normalized]
+    if (result) {
+      return {
+        ...result,
+        source_text: text.trim(),
+      }
+    }
+    throw new Error('浏览器调试模式仅内置了 ephemeral / think 两个示例词')
+  }
+
+  return invoke<TranslationResult>('translate', { text, mode })
+}
+
+export async function addFavorite(item: FavoriteItem) {
+  if (!isTauriRuntime()) {
+    return
+  }
+
+  await invoke('add_favorite', { item })
+}
+
+export async function removeFavorite(word: string) {
+  if (!isTauriRuntime()) {
+    return
+  }
+
+  await invoke('remove_favorite', { word })
+}
+
+export function getFavorites(query = '') {
+  return safeInvoke<FavoriteItem[]>('get_favorites', { query }, [])
+}
+
+// 主窗口与弹窗窗口各自维护状态，这里通过 app 级事件广播翻译结果，
+// 保证弹窗可以在独立上下文里拿到最新数据。
+export async function pushPopupResult(result: TranslationResult) {
+  if (!isTauriRuntime()) {
+    return
+  }
+
+  await emit('translation-result', result)
+  await showPopup()
 }

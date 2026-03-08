@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
-import { hidePopup } from '../../lib/tauri'
-import { useTranslationDemo } from '../../hooks/useTranslation'
+import { listen } from '@tauri-apps/api/event'
+import { useEffect, useState } from 'react'
+import { addFavorite, hidePopup, isTauriRuntime, type TranslationResult } from '../../lib/tauri'
 import { useTranslationStore } from '../../stores/translationStore'
 import { ActionBar } from './ActionBar'
 import { SentenceResult } from './SentenceResult'
@@ -10,7 +10,27 @@ export function PopupWindow() {
   const result = useTranslationStore((state) => state.result)
   const loading = useTranslationStore((state) => state.loading)
   const error = useTranslationStore((state) => state.error)
-  useTranslationDemo()
+  const applyResult = useTranslationStore((state) => state.applyResult)
+  const seedDemo = useTranslationStore((state) => state.seedDemo)
+  const [favoriteLabel, setFavoriteLabel] = useState('收藏')
+
+  useEffect(() => {
+    // 在浏览器里继续走演示数据；在 Tauri 中则监听主窗口广播过来的翻译结果。
+    if (!isTauriRuntime()) {
+      seedDemo()
+      return
+    }
+
+    let unlisten: (() => void) | undefined
+    void listen<TranslationResult>('translation-result', (event) => {
+      setFavoriteLabel('收藏')
+      applyResult(event.payload)
+    }).then((fn) => {
+      unlisten = fn
+    })
+
+    return () => unlisten?.()
+  }, [applyResult, seedDemo])
 
   useEffect(() => {
     // 先把 Esc 关闭能力接上，后续真正接入 Tauri 弹窗时可直接复用。
@@ -30,7 +50,7 @@ export function PopupWindow() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">Popup</p>
-            <h1 className="mt-2 text-lg font-semibold">Cycle 01 弹窗骨架</h1>
+            <h1 className="mt-2 text-lg font-semibold">单词翻译结果</h1>
           </div>
         </div>
 
@@ -40,7 +60,24 @@ export function PopupWindow() {
         {!loading && !error && !result ? <div className="py-10 text-center text-sm text-slate-400">等待翻译结果…</div> : null}
 
         <div className="mt-5 border-t border-white/10 pt-4">
-          <ActionBar onClose={() => void hidePopup()} />
+          <ActionBar
+            favoriteLabel={favoriteLabel}
+            showFavorite={result?.mode === 'word'}
+            onFavorite={() => {
+              if (!result || result.mode !== 'word') {
+                return
+              }
+
+              void addFavorite({
+                word: result.source_text,
+                phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
+                chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
+                translation: result.translated_text,
+                source_text: result.source_text,
+              }).then(() => setFavoriteLabel('已收藏'))
+            }}
+            onClose={() => void hidePopup()}
+          />
         </div>
       </div>
     </div>

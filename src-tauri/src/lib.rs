@@ -1,5 +1,7 @@
+mod api;
 mod commands;
 mod db;
+mod services;
 mod utils;
 
 use tauri::{
@@ -83,6 +85,10 @@ pub fn run() {
             commands::settings::show_popup,
             commands::settings::hide_popup,
             commands::settings::show_main_window,
+            commands::translate::translate,
+            commands::favorite::add_favorite,
+            commands::favorite::remove_favorite,
+            commands::favorite::get_favorites,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run EchoWord application")
