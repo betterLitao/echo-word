@@ -4,11 +4,14 @@
 
 ## 技术栈
 
-- **框架：** Tauri (Rust + Web 前端)
-- **前端：** 待定（React/Vue/Svelte）
-- **数据库：** SQLite
+- **框架：** Tauri v2 (Rust + React)
+- **前端：** React + TypeScript + Vite
+- **样式：** Tailwind CSS
+- **组件库：** shadcn/ui
+- **状态管理：** zustand
+- **数据库：** SQLite (rusqlite)
 - **离线词典：** ECDICT（核心版 5 万词内置）
-- **目标平台：** macOS、Windows
+- **目标平台：** macOS、Windows (P0)，Linux (P2)
 
 ## 需求文档
 
@@ -16,7 +19,7 @@
 
 ## 当前阶段
 
-需求已定稿，待进入技术架构设计。
+技术设计已完成，详见 `docs/technical-design.md`，待进入编码实现。
 
 ## 关键决策记录
 
