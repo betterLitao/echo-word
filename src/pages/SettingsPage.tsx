@@ -8,16 +8,23 @@ import { TranslationWorkbench } from '../components/settings/TranslationWorkbenc
 import { Button } from '../components/ui/Button'
 import { PageHero } from '../components/ui/PageHero'
 import { StatusPill } from '../components/ui/StatusPill'
+import { useI18n } from '../hooks/useI18n'
 
-const tabs = [
-  { key: 'general', label: '通用', icon: GearSix },
-  { key: 'translation', label: '翻译源', icon: Lightning },
-  { key: 'shortcut', label: '快捷键', icon: Key },
-  { key: 'dictionary', label: '词典', icon: Database },
-] as const
+type SettingsTabKey = 'general' | 'translation' | 'shortcut' | 'dictionary'
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['key']>('general')
+  const { t } = useI18n()
+  const [activeTab, setActiveTab] = useState<SettingsTabKey>('general')
+
+  const tabs = useMemo(
+    () => [
+      { key: 'general' as const, label: t('settings.tab.general'), icon: GearSix },
+      { key: 'translation' as const, label: t('settings.tab.translation'), icon: Lightning },
+      { key: 'shortcut' as const, label: t('settings.tab.shortcut'), icon: Key },
+      { key: 'dictionary' as const, label: t('settings.tab.dictionary'), icon: Database },
+    ],
+    [t],
+  )
 
   const content = useMemo(() => {
     switch (activeTab) {
@@ -37,14 +44,14 @@ export function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHero
-        description="设置页现在同时承担输入翻译工作台、系统入口和状态面板职责：除了配置项，还能直接验证快捷键、历史回放、句子翻译与缓存提示。"
-        eyebrow="Settings Center"
-        title="把输入翻译、配置与状态提示放进同一个工作台，而不是拆成互相割裂的页面。"
+        description={t('settings.page.description')}
+        eyebrow={t('settings.page.eyebrow')}
+        title={t('settings.page.title')}
         meta={
           <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-            <StatusPill icon={<Lightning size={14} weight="fill" />} label="Cycle 05" tone="accent" />
-            <StatusPill icon={<Translate size={14} weight="duotone" />} label="Sentence Flow Ready" />
-            <StatusPill icon={<Key size={14} weight="duotone" />} label="Shortcut Ready" />
+            <StatusPill icon={<Lightning size={14} weight="fill" />} label={t('settings.meta.cycle')} tone="accent" />
+            <StatusPill icon={<Translate size={14} weight="duotone" />} label={t('settings.meta.sentence')} />
+            <StatusPill icon={<Key size={14} weight="duotone" />} label={t('settings.meta.shortcut')} />
           </div>
         }
       />

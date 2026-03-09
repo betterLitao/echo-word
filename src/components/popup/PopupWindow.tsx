@@ -32,18 +32,38 @@ export function PopupWindow() {
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
 
-  const [favoriteLabel, setFavoriteLabel] = useState('收藏')
-  const [copyLabel, setCopyLabel] = useState('复制')
-  const [actionHint, setActionHint] = useState<string | null>(null)
+  const actionScope = `${result?.source_text ?? ''}:${streamText}`
+  const [favoriteLabelState, setFavoriteLabelState] = useState<{ scope: string; value: string | null }>({
+    scope: '',
+    value: null,
+  })
+  const [copyLabelState, setCopyLabelState] = useState<{ scope: string; value: string | null }>({
+    scope: '',
+    value: null,
+  })
+  const [actionHintState, setActionHintState] = useState<{ scope: string; value: string | null }>({
+    scope: '',
+    value: null,
+  })
   const actionBarRef = useRef<HTMLDivElement | null>(null)
 
   const canFavorite = useMemo(() => result?.mode === 'word', [result])
+  const favoriteLabel = favoriteLabelState.scope === actionScope && favoriteLabelState.value ? favoriteLabelState.value : '收藏'
+  const copyLabel = copyLabelState.scope === actionScope && copyLabelState.value ? copyLabelState.value : '复制'
+  const actionHint = actionHintState.scope === actionScope ? actionHintState.value : null
 
-  useEffect(() => {
-    setFavoriteLabel('收藏')
-    setCopyLabel('复制')
-    setActionHint(null)
-  }, [result?.source_text, streamText])
+  const setFavoriteLabel = useCallback(
+    (value: string | null) => setFavoriteLabelState({ scope: actionScope, value }),
+    [actionScope],
+  )
+  const setCopyLabel = useCallback(
+    (value: string | null) => setCopyLabelState({ scope: actionScope, value }),
+    [actionScope],
+  )
+  const setActionHint = useCallback(
+    (value: string | null) => setActionHintState({ scope: actionScope, value }),
+    [actionScope],
+  )
 
   const getActionButtons = useCallback(() => {
     if (!actionBarRef.current) {
@@ -101,7 +121,7 @@ export function PopupWindow() {
       .catch((copyError) => {
         setActionHint(copyError instanceof Error ? copyError.message : '复制失败')
       })
-  }, [result])
+  }, [result, setActionHint, setCopyLabel])
 
   const handleFavorite = useCallback(() => {
     if (!result || result.mode !== 'word') {
@@ -115,14 +135,17 @@ export function PopupWindow() {
       translation: result.translated_text,
       source_text: result.source_text,
     })
-      .then(() => {
+      .then((notice) => {
         setFavoriteLabel('已收藏')
-        setActionHint('已加入收藏列表')
+        setActionHint(notice ?? '已加入收藏列表')
+        if (notice) {
+          window.alert(notice)
+        }
       })
       .catch((favoriteError) => {
         setActionHint(favoriteError instanceof Error ? favoriteError.message : '收藏失败')
       })
-  }, [result])
+  }, [result, setActionHint, setFavoriteLabel])
 
   const handleSpeak = useCallback(() => {
     if (!result) {
@@ -135,7 +158,7 @@ export function PopupWindow() {
     } catch (speakerError) {
       setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
     }
-  }, [result])
+  }, [result, setActionHint])
 
   const handleModeChange = useCallback(
     (nextMode: TranslationMode) => {
@@ -250,7 +273,7 @@ export function PopupWindow() {
       <div className="relative mx-auto max-w-[400px] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(2,6,23,0.82))] p-5 shadow-[0_32px_90px_-40px_rgba(2,6,23,0.96)] backdrop-blur-2xl">
         <div className="pointer-events-none absolute inset-px rounded-[1.9rem] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
 
-        <div className="relative mb-5 flex items-center justify-between gap-4">
+        <div data-tauri-drag-region className="relative mb-5 flex cursor-move select-none items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-300/88">Popup</p>
             <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">

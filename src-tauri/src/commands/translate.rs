@@ -1,5 +1,8 @@
+use std::sync::Mutex;
+
 use tauri::{Emitter, Manager, PhysicalPosition};
 
+use crate::commands::settings::load_settings_from_db;
 use crate::services::translator::{self, TranslationMode, TranslationResult};
 use crate::utils::platform;
 
@@ -8,8 +11,78 @@ const DEFAULT_POPUP_HEIGHT: i32 = 300;
 const POPUP_OFFSET_X: i32 = 18;
 const POPUP_OFFSET_Y: i32 = 20;
 
+#[derive(Default)]
+pub struct PopupPositionState {
+    pending_programmatic_move: Mutex<Option<(i32, i32)>>,
+}
+
+impl PopupPositionState {
+    pub fn mark_programmatic_move(&self, x: i32, y: i32) {
+        if let Ok(mut guard) = self.pending_programmatic_move.lock() {
+            *guard = Some((x, y));
+        }
+    }
+
+    pub fn consume_if_programmatic(&self, x: i32, y: i32) -> bool {
+        if let Ok(mut guard) = self.pending_programmatic_move.lock() {
+            if guard.as_ref() == Some(&(x, y)) {
+                *guard = None;
+                return true;
+            }
+        }
+
+        false
+    }
+}
+
 fn clamp(value: i32, min: i32, max: i32) -> i32 {
     value.max(min).min(max)
+}
+
+fn clamp_popup_position(
+    min_x: i32,
+    min_y: i32,
+    width: u32,
+    height: u32,
+    raw_x: i32,
+    raw_y: i32,
+) -> (i32, i32) {
+    let max_x = (min_x + width as i32 - DEFAULT_POPUP_WIDTH).max(min_x);
+    let max_y = (min_y + height as i32 - DEFAULT_POPUP_HEIGHT).max(min_y);
+    (clamp(raw_x, min_x, max_x), clamp(raw_y, min_y, max_y))
+}
+
+fn resolve_popup_position_from_cursor(app: &tauri::AppHandle) -> Option<(i32, i32)> {
+    let cursor = app.cursor_position().ok()?;
+    let monitor = app.monitor_from_point(cursor.x, cursor.y).ok()??;
+    let work_area = monitor.work_area();
+
+    Some(clamp_popup_position(
+        work_area.position.x,
+        work_area.position.y,
+        work_area.size.width,
+        work_area.size.height,
+        cursor.x.round() as i32 + POPUP_OFFSET_X,
+        cursor.y.round() as i32 + POPUP_OFFSET_Y,
+    ))
+}
+
+fn resolve_popup_position_from_memory(
+    app: &tauri::AppHandle,
+    x: i32,
+    y: i32,
+) -> Option<(i32, i32)> {
+    let monitor = app.monitor_from_point(x as f64, y as f64).ok()??;
+    let work_area = monitor.work_area();
+
+    Some(clamp_popup_position(
+        work_area.position.x,
+        work_area.position.y,
+        work_area.size.width,
+        work_area.size.height,
+        x,
+        y,
+    ))
 }
 
 fn resolve_mode(mode: Option<String>) -> TranslationMode {
@@ -25,17 +98,18 @@ pub(crate) fn show_popup_near_cursor(app: &tauri::AppHandle) -> Result<(), Strin
         .get_webview_window("popup")
         .ok_or_else(|| "popup window not found".to_string())?;
 
-    if let Ok(cursor) = app.cursor_position() {
-        if let Ok(Some(monitor)) = app.monitor_from_point(cursor.x, cursor.y) {
-            let work_area = monitor.work_area();
-            let min_x = work_area.position.x;
-            let min_y = work_area.position.y;
-            let max_x = (min_x + work_area.size.width as i32 - DEFAULT_POPUP_WIDTH).max(min_x);
-            let max_y = (min_y + work_area.size.height as i32 - DEFAULT_POPUP_HEIGHT).max(min_y);
-            let target_x = clamp(cursor.x.round() as i32 + POPUP_OFFSET_X, min_x, max_x);
-            let target_y = clamp(cursor.y.round() as i32 + POPUP_OFFSET_Y, min_y, max_y);
-            let _ = window.set_position(PhysicalPosition::new(target_x, target_y));
-        }
+    let target_position = load_settings_from_db(app)
+        .ok()
+        .and_then(|settings| match (settings.popup_last_x, settings.popup_last_y) {
+            (Some(x), Some(y)) => resolve_popup_position_from_memory(app, x, y),
+            _ => None,
+        })
+        .or_else(|| resolve_popup_position_from_cursor(app));
+
+    if let Some((target_x, target_y)) = target_position {
+        let popup_position_state = app.state::<PopupPositionState>();
+        popup_position_state.mark_programmatic_move(target_x, target_y);
+        let _ = window.set_position(PhysicalPosition::new(target_x, target_y));
     }
 
     window.show().map_err(|error| error.to_string())?;

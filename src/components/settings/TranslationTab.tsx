@@ -10,6 +10,7 @@ const engineOptions = [
   { key: 'tencent', label: '腾讯翻译' },
   { key: 'baidu', label: '百度翻译' },
   { key: 'openai', label: 'OpenAI' },
+  { key: 'ollama', label: 'Ollama 本地模型' },
 ] as const
 
 function CredentialInput(props: {
@@ -37,9 +38,9 @@ export function TranslationTab() {
 
   return (
     <div className="space-y-6">
-      <SectionCard title="翻译源设置" description="句子翻译会优先走主引擎，失败后按降级链继续尝试。单词优先 ECDICT，未命中时回退有道。">
+      <SectionCard title="翻译源设置" description="句子翻译优先走主引擎，失败后按降级链继续尝试。单词仍优先 ECDICT，未命中再回退有道。">
         <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <Field label="默认翻译源" description="句子模式优先使用这里选中的在线 Provider。">
+          <Field label="默认翻译源" description="句子模式优先使用这里选中的 Provider。">
             <select className={fieldControlClassName} value={settings.translation_provider} onChange={(event) => void updateSetting('translation_provider', event.target.value)}>
               <option value="ecdict">ECDICT（离线）</option>
               {engineOptions.map((option) => (
@@ -50,7 +51,7 @@ export function TranslationTab() {
             </select>
           </Field>
 
-          <Field label="降级链" description="使用 `->` 分隔，运行时会按顺序尝试备用 Provider。">
+          <Field label="降级链" description="使用 `->` 分隔。系统会按顺序继续尝试备用 Provider。">
             <input
               className={fieldControlClassName}
               value={settings.fallback_chain.join(' -> ')}
@@ -68,7 +69,7 @@ export function TranslationTab() {
         </div>
       </SectionCard>
 
-      <SectionCard title="Provider 凭证" description="DeepL / OpenAI 继续走 `api_keys`，腾讯、百度、有道改成正式字段，不再混装。">
+      <SectionCard title="Provider 配置" description="OpenAI 走 SSE，Ollama 走本地 REST 流式输出。别把本地模型入口继续当摆设。">
         <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
           <CredentialInput
             label="DeepL API Key"
@@ -79,11 +80,19 @@ export function TranslationTab() {
           />
           <CredentialInput
             label="OpenAI API Key"
-            description="支持 SSE 流式输出。"
+            description="支持流式输出。"
             placeholder="输入 OpenAI API Key"
             value={settings.api_keys.openai ?? ''}
             onChange={(value) => void updateSetting('api_keys', { ...settings.api_keys, openai: value })}
           />
+
+          <Field label="Ollama Endpoint" description="默认本地地址是 http://localhost:11434/api/generate。">
+            <input className={fieldControlClassName} placeholder="http://localhost:11434/api/generate" value={settings.ollama_endpoint} onChange={(event) => void updateSetting('ollama_endpoint', event.target.value)} />
+          </Field>
+          <Field label="Ollama Model" description="填写本地已安装模型名，例如 qwen2.5:3b。">
+            <input className={fieldControlClassName} placeholder="qwen2.5:3b" value={settings.ollama_model} onChange={(event) => void updateSetting('ollama_model', event.target.value)} />
+          </Field>
+
           <CredentialInput
             label="有道 App Key"
             description="ECDICT 查不到单词时在线回退。"
@@ -98,6 +107,7 @@ export function TranslationTab() {
             value={settings.youdao_app_secret}
             onChange={(value) => void updateSetting('youdao_app_secret', value)}
           />
+
           <CredentialInput
             label="腾讯 Secret ID"
             description="用于 TC3-HMAC-SHA256 签名。"
@@ -112,6 +122,7 @@ export function TranslationTab() {
             value={settings.tencent_secret_key}
             onChange={(value) => void updateSetting('tencent_secret_key', value)}
           />
+
           <CredentialInput
             label="百度 App ID"
             description="用于百度翻译正式请求。"
@@ -129,13 +140,14 @@ export function TranslationTab() {
         </div>
       </SectionCard>
 
-      <SectionCard title="多引擎对照" description="最多同时展示 3 个句子引擎，方便横向比较。">
+      <SectionCard title="多引擎对照" description="最多同时展示 3 个句子引擎，方便横向比较。Ollama 也能进这个列表。">
         <div className="space-y-5">
           <div className="flex flex-wrap gap-3">
             <Button variant={settings.multi_engine_enabled ? 'primary' : 'secondary'} onClick={() => void updateSetting('multi_engine_enabled', !settings.multi_engine_enabled)}>
               {settings.multi_engine_enabled ? '关闭多引擎对照' : '开启多引擎对照'}
             </Button>
           </div>
+
           <div className="flex flex-wrap gap-3">
             {engineOptions.map((option) => {
               const active = settings.multi_engine_list.includes(option.key)
@@ -155,10 +167,11 @@ export function TranslationTab() {
               )
             })}
           </div>
+
           <div className="flex flex-wrap gap-2">
             <StatusPill icon={<Stack size={14} weight="duotone" />} label={settings.multi_engine_enabled ? '多引擎已启用' : '单引擎模式'} tone={settings.multi_engine_enabled ? 'accent' : 'muted'} />
-            <StatusPill icon={<Translate size={14} weight="duotone" />} label={`已选择 ${settings.multi_engine_list.length || 0} 个对照引擎`} />
-            <StatusPill icon={<Lightning size={14} weight="duotone" />} label="OpenAI 支持流式输出" />
+            <StatusPill icon={<Translate size={14} weight="duotone" />} label={`已选择 ${settings.multi_engine_list.length} 个对照引擎`} />
+            <StatusPill icon={<Lightning size={14} weight="duotone" />} label="OpenAI / Ollama 支持流式输出" />
           </div>
         </div>
       </SectionCard>

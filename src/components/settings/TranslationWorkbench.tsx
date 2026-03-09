@@ -1,5 +1,5 @@
 import { Copy, HeartStraight, SpeakerHigh, Sparkle, Translate, Waveform } from '@phosphor-icons/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import { addFavorite, getResultProviderLabel, pushPopupResult } from '../../lib/tauri'
 import { speakText } from '../../lib/tts'
@@ -36,13 +36,20 @@ export function TranslationWorkbench() {
   const setInput = useTranslationStore((state) => state.setInput)
   const setMode = useTranslationStore((state) => state.setMode)
   const translate = useTranslationStore((state) => state.translate)
-  const [copyLabel, setCopyLabel] = useState('复制结果')
-  const [favoriteLabel, setFavoriteLabel] = useState('收藏单词')
-
-  useEffect(() => {
-    setCopyLabel('复制结果')
-    setFavoriteLabel('收藏单词')
-  }, [result?.source_text, streamText])
+  const actionScope = `${result?.source_text ?? ''}:${streamText}`
+  const [copyLabelState, setCopyLabelState] = useState<{ scope: string; value: string | null }>({
+    scope: '',
+    value: null,
+  })
+  const [favoriteLabelState, setFavoriteLabelState] = useState<{ scope: string; value: string | null }>({
+    scope: '',
+    value: null,
+  })
+  const copyLabel = copyLabelState.scope === actionScope && copyLabelState.value ? copyLabelState.value : '复制结果'
+  const favoriteLabel =
+    favoriteLabelState.scope === actionScope && favoriteLabelState.value
+      ? favoriteLabelState.value
+      : '收藏单词'
 
   const favoritePayload = useMemo(() => {
     if (!result || result.mode !== 'word') {
@@ -110,7 +117,9 @@ export function TranslationWorkbench() {
               disabled={!result}
               onClick={() =>
                 result
-                  ? void navigator.clipboard.writeText(result.translated_text).then(() => setCopyLabel('已复制'))
+                  ? void navigator.clipboard
+                      .writeText(result.translated_text)
+                      .then(() => setCopyLabelState({ scope: actionScope, value: '已复制' }))
                   : undefined
               }
             >
@@ -136,7 +145,14 @@ export function TranslationWorkbench() {
               <Button
                 icon={<HeartStraight size={16} weight="duotone" />}
                 variant="ghost"
-                onClick={() => void addFavorite(favoritePayload).then(() => setFavoriteLabel('已收藏'))}
+                onClick={() =>
+                  void addFavorite(favoritePayload).then((notice) => {
+                    setFavoriteLabelState({ scope: actionScope, value: '已收藏' })
+                    if (notice) {
+                      window.alert(notice)
+                    }
+                  })
+                }
               >
                 {favoriteLabel}
               </Button>

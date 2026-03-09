@@ -78,6 +78,7 @@ export interface Settings {
   theme: Theme
   data_dir: string
   privacy_mode: boolean
+  auto_start: boolean
   clipboard_listen: boolean
   auto_update: boolean
   proxy_enabled: boolean
@@ -87,13 +88,18 @@ export interface Settings {
   dictionary_version: string
   multi_engine_enabled: boolean
   multi_engine_list: string[]
+  ollama_endpoint: string
+  ollama_model: string
+  popup_last_x: number | null
+  popup_last_y: number | null
+  language: string
 }
 
 export const defaultSettings: Settings = {
   shortcut_translate: 'CmdOrCtrl+Shift+T',
   shortcut_input: 'CmdOrCtrl+Shift+I',
   translation_provider: 'ecdict',
-  fallback_chain: ['deepl', 'tencent', 'baidu'],
+  fallback_chain: ['deepl', 'tencent', 'baidu', 'openai', 'ollama'],
   api_keys: {},
   youdao_app_key: '',
   youdao_app_secret: '',
@@ -104,6 +110,7 @@ export const defaultSettings: Settings = {
   theme: 'system',
   data_dir: '默认应用目录',
   privacy_mode: false,
+  auto_start: false,
   clipboard_listen: false,
   auto_update: true,
   proxy_enabled: false,
@@ -113,7 +120,14 @@ export const defaultSettings: Settings = {
   dictionary_version: 'core',
   multi_engine_enabled: false,
   multi_engine_list: [],
+  ollama_endpoint: 'http://localhost:11434/api/generate',
+  ollama_model: '',
+  popup_last_x: null,
+  popup_last_y: null,
+  language: 'zh-CN',
 }
+
+export type FavoriteExportFormat = 'csv' | 'json' | 'anki'
 
 const demoDictionary: Record<string, TranslationResult> = {
   ephemeral: {
@@ -339,10 +353,10 @@ export async function translateAndShowPopup(text: string, mode: TranslationMode 
 
 export async function addFavorite(item: FavoriteItem) {
   if (!isTauriRuntime()) {
-    return
+    return null
   }
 
-  await invoke('add_favorite', { item })
+  return invoke<string | null>('add_favorite', { item })
 }
 
 export async function removeFavorite(word: string) {
@@ -355,6 +369,22 @@ export async function removeFavorite(word: string) {
 
 export function getFavorites(query = '', page = 1, pageSize = 20) {
   return safeInvoke<FavoriteItem[]>('get_favorites', { query, page, pageSize }, [])
+}
+
+export async function exportFavorites(format: FavoriteExportFormat) {
+  if (!isTauriRuntime()) {
+    return null
+  }
+
+  return invoke<string | null>('export_favorites', { format })
+}
+
+export async function resetPopupPosition() {
+  if (!isTauriRuntime()) {
+    return
+  }
+
+  await invoke('reset_popup_position')
 }
 
 export function getHistory(

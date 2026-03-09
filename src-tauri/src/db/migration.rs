@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: &[(&str, &str)] = &[
     ("theme", "\"system\""),
     ("data_dir", "\"默认应用目录\""),
     ("privacy_mode", "false"),
+    ("auto_start", "false"),
     ("clipboard_listen", "false"),
     ("auto_update", "true"),
     ("proxy", "\"\""),
@@ -27,6 +28,11 @@ const DEFAULT_SETTINGS: &[(&str, &str)] = &[
     ("dictionary_version", "\"core\""),
     ("multi_engine_enabled", "false"),
     ("multi_engine_list", "[]"),
+    ("ollama_endpoint", "\"http://localhost:11434/api/generate\""),
+    ("ollama_model", "\"\""),
+    ("popup_last_x", "null"),
+    ("popup_last_y", "null"),
+    ("language", "\"zh-CN\""),
 ];
 
 // 当前阶段先提供最小 Migration 能力：

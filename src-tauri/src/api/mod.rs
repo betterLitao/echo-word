@@ -2,6 +2,7 @@ pub mod baidu;
 pub mod deepl;
 pub mod ecdict;
 pub mod http;
+pub mod ollama;
 pub mod openai;
 pub mod provider;
 pub mod signing;

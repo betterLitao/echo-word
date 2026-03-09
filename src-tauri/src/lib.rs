@@ -6,16 +6,29 @@ mod services;
 mod utils;
 
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Manager,
 };
+use tauri_plugin_autostart::MacosLauncher;
 
-fn build_tray(app: &tauri::App) -> tauri::Result<()> {
+fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let privacy_mode_enabled = commands::settings::load_settings_from_db(app)
+        .map(|settings| settings.privacy_mode)
+        .unwrap_or(false);
+
     let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
+    let privacy_item = CheckMenuItem::with_id(
+        app,
+        "privacy_mode",
+        "隐私模式",
+        true,
+        privacy_mode_enabled,
+        None::<&str>,
+    )?;
     let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_item, &settings_item, &quit_item])?;
+    let menu = Menu::with_items(app, &[&show_item, &settings_item, &privacy_item, &quit_item])?;
 
     TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
@@ -24,6 +37,16 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.show();
                     let _ = window.set_focus();
+                }
+            }
+            "privacy_mode" => {
+                if let Ok(settings) = commands::settings::load_settings_from_db(app) {
+                    let next_value = !settings.privacy_mode;
+                    let _ = commands::settings::update_setting(
+                        app.clone(),
+                        "privacy_mode".into(),
+                        serde_json::json!(next_value),
+                    );
                 }
             }
             "quit" => app.exit(0),
@@ -47,6 +70,11 @@ fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
+pub(crate) fn rebuild_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    let _ = app.remove_tray_by_id("main-tray");
+    build_tray(app).map_err(|error| error.to_string())
+}
+
 fn wire_main_window(app: &tauri::App) {
     if let Some(window) = app.get_webview_window("main") {
         let app_handle = app.handle().clone();
@@ -64,12 +92,44 @@ fn wire_main_window(app: &tauri::App) {
     }
 }
 
+fn wire_popup_window(app: &tauri::App) {
+    if let Some(window) = app.get_webview_window("popup") {
+        let app_handle = app.handle().clone();
+        window.on_window_event(move |event| {
+            if let tauri::WindowEvent::Moved(position) = event {
+                let popup_position_state = app_handle.state::<commands::translate::PopupPositionState>();
+                if popup_position_state.consume_if_programmatic(position.x, position.y) {
+                    return;
+                }
+
+                let _ = commands::settings::update_setting_value(
+                    &app_handle,
+                    "popup_last_x",
+                    serde_json::json!(position.x),
+                );
+                let _ = commands::settings::update_setting_value(
+                    &app_handle,
+                    "popup_last_y",
+                    serde_json::json!(position.y),
+                );
+            }
+        });
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None::<Vec<&str>>,
+        ))
         .setup(|app| {
             db::migration::run_migrations(&app.handle())?;
-            build_tray(app)?;
+            app.manage(commands::translate::PopupPositionState::default());
+            build_tray(&app.handle())?;
             wire_main_window(app);
+            wire_popup_window(app);
 
             app.handle().plugin(
                 tauri_plugin_global_shortcut::Builder::new()
@@ -93,6 +153,7 @@ pub fn run() {
             commands::settings::open_accessibility_settings,
             commands::settings::show_popup,
             commands::settings::hide_popup,
+            commands::settings::reset_popup_position,
             commands::settings::show_main_window,
             commands::translate::translate,
             commands::translate::translate_and_show_popup,
@@ -101,6 +162,7 @@ pub fn run() {
             commands::favorite::add_favorite,
             commands::favorite::remove_favorite,
             commands::favorite::get_favorites,
+            commands::favorite::export_favorites,
             commands::history::get_history,
         ])
         .run(tauri::generate_context!())

@@ -1,0 +1,18 @@
+export const en = {
+  'settings.page.eyebrow': 'Settings Center',
+  'settings.page.title': 'Keep translation input, configuration, and status in one workspace instead of scattering them across disconnected pages.',
+  'settings.page.description': 'This is a minimal i18n pass. It only proves the settings-page title, labels, and language setting flow.',
+  'settings.meta.cycle': 'Cycle 05',
+  'settings.meta.sentence': 'Sentence Flow Ready',
+  'settings.meta.shortcut': 'Shortcut Ready',
+  'settings.tab.general': 'General',
+  'settings.tab.translation': 'Providers',
+  'settings.tab.shortcut': 'Shortcuts',
+  'settings.tab.dictionary': 'Dictionary',
+  'settings.general.title': 'General Settings',
+  'settings.general.status': 'Current Status',
+  'settings.general.language.label': 'Language',
+  'settings.general.language.description': 'This is a minimal i18n scaffold. Only the settings-page title and labels are translated for now.',
+  'settings.general.popup.label': 'Popup Position',
+  'settings.general.popup.description': 'Remember the last dragged position. Reset it to go back to follow-cursor mode.',
+} as const

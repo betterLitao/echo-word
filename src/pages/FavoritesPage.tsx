@@ -15,7 +15,13 @@ import { Field, fieldControlClassName } from '../components/ui/Field'
 import { PageHero } from '../components/ui/PageHero'
 import { SectionCard } from '../components/ui/SectionCard'
 import { StatusPill } from '../components/ui/StatusPill'
-import { getFavorites, removeFavorite, type FavoriteItem } from '../lib/tauri'
+import {
+  exportFavorites,
+  getFavorites,
+  removeFavorite,
+  type FavoriteExportFormat,
+  type FavoriteItem,
+} from '../lib/tauri'
 import { useTranslationStore } from '../stores/translationStore'
 
 const PAGE_SIZE = 20
@@ -29,6 +35,9 @@ export function FavoritesPage() {
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<FavoriteItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [exportFormat, setExportFormat] = useState<FavoriteExportFormat>('csv')
+  const [exporting, setExporting] = useState(false)
+  const [exportHint, setExportHint] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -81,20 +90,49 @@ export function FavoritesPage() {
     setLoading(false)
   }
 
+  const handleExport = async () => {
+    setExporting(true)
+    setExportHint(null)
+
+    try {
+      const path = await exportFavorites(exportFormat)
+      setExportHint(path ? `已导出到 ${path}` : '已取消导出')
+    } catch (error) {
+      setExportHint(error instanceof Error ? error.message : '导出失败')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const hasNextPage = items.length === PAGE_SIZE
 
   return (
     <div className="space-y-6">
       <PageHero
-        description="收藏页不只是静态结果堆栈，现在会把搜索、回放和清理都压进同一套工作流里。"
+        description="收藏不该只是静态结果堆栈。现在它支持搜索、回放、删除和多格式导出，才算像个能用的工作面板。"
         eyebrow="Favorites"
-        title="把真正值得反复看的单词，留在一份可检索、可回放的清单里。"
+        title="把真正值得反复看的单词，留在一份可检索、可回放、可导出的清单里。"
         meta={<StatusPill icon={<HeartStraight size={14} weight="fill" />} label={`${items.length} 条结果`} tone="accent" />}
       />
 
-      <SectionCard title="离线单词收藏" description="支持按词面或释义搜索；回放会把单词重新送回工作台，再走当前版本的翻译链路。">
+      <SectionCard
+        title="离线单词收藏"
+        description="支持按单词或中文释义搜索；回放会把单词重新送回翻译工作台。导出支持 CSV / JSON / Anki TSV。"
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <select className={fieldControlClassName} value={exportFormat} onChange={(event) => setExportFormat(event.target.value as FavoriteExportFormat)}>
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+              <option value="anki">Anki TSV</option>
+            </select>
+            <Button variant="secondary" disabled={exporting} onClick={() => void handleExport()}>
+              {exporting ? '导出中...' : '导出'}
+            </Button>
+          </div>
+        }
+      >
         <div className="space-y-5">
-          <Field label="检索收藏" description="支持按单词或中文释义模糊搜索，输入停止 500ms 后更新结果。">
+          <Field label="搜索收藏" description="支持按单词或中文释义模糊搜索，输入停止 500ms 后刷新结果。">
             <div className="relative">
               <MagnifyingGlass className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} weight="duotone" />
               <input
@@ -108,6 +146,10 @@ export function FavoritesPage() {
               />
             </div>
           </Field>
+
+          {exportHint ? (
+            <div className="rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-3 text-sm text-slate-300">{exportHint}</div>
+          ) : null}
 
           {loading ? (
             <div className="grid gap-3">

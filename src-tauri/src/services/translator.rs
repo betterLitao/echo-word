@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::api::baidu::BaiduProvider;
 use crate::api::deepl::DeepLProvider;
 use crate::api::ecdict::EcdictProvider;
+use crate::api::ollama::OllamaProvider;
 use crate::api::openai::OpenAIProvider;
 use crate::api::provider::{
     DictEntry, SentenceTranslateProvider, SentenceTranslation, WordLookupProvider,
@@ -78,6 +79,7 @@ fn sentence_providers() -> Vec<Box<dyn SentenceTranslateProvider>> {
         Box::new(TencentProvider),
         Box::new(BaiduProvider),
         Box::new(OpenAIProvider),
+        Box::new(OllamaProvider),
     ]
 }
 
@@ -91,6 +93,7 @@ fn provider_label(provider: &str) -> Option<String> {
             "tencent" => "腾讯翻译",
             "baidu" => "百度翻译",
             "openai" => "OpenAI",
+            "ollama" => "Ollama 本地模型",
             other => other,
         }
         .to_string(),
@@ -156,6 +159,7 @@ fn resolve_sentence_provider_order(settings: &AppSettings) -> Vec<String> {
             "tencent".into(),
             "baidu".into(),
             "openai".into(),
+            "ollama".into(),
         ]);
     }
 
@@ -187,6 +191,7 @@ fn resolve_multi_engine_targets(settings: &AppSettings, provider_order: &[String
             "tencent".into(),
             "baidu".into(),
             "openai".into(),
+            "ollama".into(),
         ]);
     }
 

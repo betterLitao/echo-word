@@ -3,6 +3,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::Manager;
+use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::Shortcut;
 
 use crate::commands::translate::show_popup_near_cursor;
@@ -27,6 +28,7 @@ pub struct AppSettings {
     pub theme: String,
     pub data_dir: String,
     pub privacy_mode: bool,
+    pub auto_start: bool,
     pub clipboard_listen: bool,
     pub auto_update: bool,
     pub proxy_enabled: bool,
@@ -36,6 +38,11 @@ pub struct AppSettings {
     pub dictionary_version: String,
     pub multi_engine_enabled: bool,
     pub multi_engine_list: Vec<String>,
+    pub ollama_endpoint: String,
+    pub ollama_model: String,
+    pub popup_last_x: Option<i32>,
+    pub popup_last_y: Option<i32>,
+    pub language: String,
 }
 
 impl Default for AppSettings {
@@ -55,6 +62,7 @@ impl Default for AppSettings {
             theme: "system".into(),
             data_dir: "默认应用目录".into(),
             privacy_mode: false,
+            auto_start: false,
             clipboard_listen: false,
             auto_update: true,
             proxy_enabled: false,
@@ -64,6 +72,11 @@ impl Default for AppSettings {
             dictionary_version: "core".into(),
             multi_engine_enabled: false,
             multi_engine_list: Vec::new(),
+            ollama_endpoint: "http://localhost:11434/api/generate".into(),
+            ollama_model: String::new(),
+            popup_last_x: None,
+            popup_last_y: None,
+            language: "zh-CN".into(),
         }
     }
 }
@@ -118,6 +131,11 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
     };
     let proxy_url = parse_value(map.get("proxy_url"), proxy_url_default);
     let proxy_enabled = parse_value(map.get("proxy_enabled"), !proxy_url.trim().is_empty());
+    let auto_start_stored = parse_value(map.get("auto_start"), defaults.auto_start);
+    let auto_start = app
+        .autolaunch()
+        .is_enabled()
+        .unwrap_or(auto_start_stored);
 
     Ok(AppSettings {
         shortcut_translate: parse_value(map.get("shortcut_translate"), defaults.shortcut_translate),
@@ -134,6 +152,7 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         theme: parse_value(map.get("theme"), defaults.theme),
         data_dir: parse_value(map.get("data_dir"), defaults.data_dir),
         privacy_mode: parse_value(map.get("privacy_mode"), defaults.privacy_mode),
+        auto_start,
         clipboard_listen: parse_value(map.get("clipboard_listen"), defaults.clipboard_listen),
         auto_update: parse_value(map.get("auto_update"), defaults.auto_update),
         proxy_enabled,
@@ -143,6 +162,11 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         dictionary_version: parse_value(map.get("dictionary_version"), defaults.dictionary_version),
         multi_engine_enabled: parse_value(map.get("multi_engine_enabled"), defaults.multi_engine_enabled),
         multi_engine_list: parse_value(map.get("multi_engine_list"), defaults.multi_engine_list),
+        ollama_endpoint: parse_value(map.get("ollama_endpoint"), defaults.ollama_endpoint),
+        ollama_model: parse_value(map.get("ollama_model"), defaults.ollama_model),
+        popup_last_x: parse_value(map.get("popup_last_x"), defaults.popup_last_x),
+        popup_last_y: parse_value(map.get("popup_last_y"), defaults.popup_last_y),
+        language: parse_value(map.get("language"), defaults.language),
     })
 }
 
@@ -164,30 +188,65 @@ fn validate_shortcut_value(key: &str, value: &Value) -> Result<(), String> {
         .map_err(|error| format!("快捷键格式无效：{}", error))
 }
 
-#[tauri::command]
-pub fn update_setting(app: tauri::AppHandle, key: String, value: Value) -> Result<(), String> {
-    validate_shortcut_value(&key, &value)?;
-
-    let stored_value = if key == "api_keys" {
-        crypto::encrypt_api_key_map(&app, value)
-    } else {
-        value
-    };
+fn persist_setting(app: &tauri::AppHandle, key: &str, stored_value: Value) -> Result<(), String> {
     let stored_json = stored_value.to_string();
 
-    migration::run_migrations(&app)?;
-    let conn = connection::open_app_db(&app)?;
+    migration::run_migrations(app)?;
+    let conn = connection::open_app_db(app)?;
     conn.execute(
         "INSERT INTO settings (key, value) VALUES (?1, ?2) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')",
-        rusqlite::params![&key, stored_json],
+        rusqlite::params![key, stored_json],
     )
     .map_err(|error| error.to_string())?;
 
-    if matches!(key.as_str(), "shortcut_translate" | "shortcut_input") {
-        runtime::refresh_global_shortcuts(&app)?;
+    Ok(())
+}
+
+fn apply_side_effects(app: &tauri::AppHandle, key: &str, value: &Value) -> Result<(), String> {
+    if matches!(key, "shortcut_translate" | "shortcut_input") {
+        runtime::refresh_global_shortcuts(app)?;
+    }
+
+    if key == "auto_start" {
+        let enabled = value
+            .as_bool()
+            .ok_or_else(|| "auto_start 必须是布尔值".to_string())?;
+
+        if enabled {
+            app.autolaunch().enable().map_err(|error| error.to_string())?;
+        } else {
+            app.autolaunch().disable().map_err(|error| error.to_string())?;
+        }
+    }
+
+    if key == "privacy_mode" {
+        crate::rebuild_tray(app)?;
     }
 
     Ok(())
+}
+
+pub(crate) fn update_setting_value(
+    app: &tauri::AppHandle,
+    key: &str,
+    value: Value,
+) -> Result<(), String> {
+    validate_shortcut_value(key, &value)?;
+    let runtime_value = value.clone();
+
+    let stored_value = if key == "api_keys" {
+        crypto::encrypt_api_key_map(app, value)
+    } else {
+        value
+    };
+
+    persist_setting(app, key, stored_value)?;
+    apply_side_effects(app, key, &runtime_value)
+}
+
+#[tauri::command]
+pub fn update_setting(app: tauri::AppHandle, key: String, value: Value) -> Result<(), String> {
+    update_setting_value(&app, &key, value)
 }
 
 #[tauri::command]
@@ -211,6 +270,13 @@ pub fn hide_popup(app: tauri::AppHandle) -> Result<(), String> {
         .get_webview_window("popup")
         .ok_or_else(|| "popup window not found".to_string())?;
     window.hide().map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn reset_popup_position(app: tauri::AppHandle) -> Result<(), String> {
+    update_setting_value(&app, "popup_last_x", Value::Null)?;
+    update_setting_value(&app, "popup_last_y", Value::Null)?;
     Ok(())
 }
 
