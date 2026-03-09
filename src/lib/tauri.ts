@@ -33,6 +33,15 @@ export interface TranslationResult {
   alternatives?: SentenceAlternative[]
 }
 
+export interface TranslationStreamEvent {
+  source_text: string
+  provider: string
+  provider_label?: string | null
+  delta_text: string
+  stream_text: string
+  done: boolean
+}
+
 export interface FavoriteItem {
   id?: number | null
   word: string
@@ -60,12 +69,19 @@ export interface Settings {
   translation_provider: string
   fallback_chain: string[]
   api_keys: Record<string, string>
+  youdao_app_key: string
+  youdao_app_secret: string
+  tencent_secret_id: string
+  tencent_secret_key: string
+  baidu_app_id: string
+  baidu_secret_key: string
   theme: Theme
   data_dir: string
   privacy_mode: boolean
   clipboard_listen: boolean
   auto_update: boolean
-  proxy: string
+  proxy_enabled: boolean
+  proxy_url: string
   http_api_port: number
   onboarding_completed: boolean
   dictionary_version: string
@@ -79,12 +95,19 @@ export const defaultSettings: Settings = {
   translation_provider: 'ecdict',
   fallback_chain: ['deepl', 'tencent', 'baidu'],
   api_keys: {},
+  youdao_app_key: '',
+  youdao_app_secret: '',
+  tencent_secret_id: '',
+  tencent_secret_key: '',
+  baidu_app_id: '',
+  baidu_secret_key: '',
   theme: 'system',
   data_dir: '默认应用目录',
   privacy_mode: false,
   clipboard_listen: false,
   auto_update: true,
-  proxy: '',
+  proxy_enabled: false,
+  proxy_url: '',
   http_api_port: 16888,
   onboarding_completed: false,
   dictionary_version: 'core',

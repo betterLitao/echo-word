@@ -1,5 +1,6 @@
 import { Copy, HeartStraight, SpeakerHigh, Sparkle, Translate, Waveform } from '@phosphor-icons/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import { addFavorite, getResultProviderLabel, pushPopupResult } from '../../lib/tauri'
 import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
@@ -20,9 +21,13 @@ const sentenceExamples = [
 ]
 
 export function TranslationWorkbench() {
+  useTauriTranslationEvents()
+
   const input = useTranslationStore((state) => state.input)
   const result = useTranslationStore((state) => state.result)
   const loading = useTranslationStore((state) => state.loading)
+  const streaming = useTranslationStore((state) => state.streaming)
+  const streamText = useTranslationStore((state) => state.streamText)
   const error = useTranslationStore((state) => state.error)
   const mode = useTranslationStore((state) => state.mode)
   const resolvedMode = useTranslationStore((state) => state.resolvedMode)
@@ -33,6 +38,11 @@ export function TranslationWorkbench() {
   const translate = useTranslationStore((state) => state.translate)
   const [copyLabel, setCopyLabel] = useState('复制结果')
   const [favoriteLabel, setFavoriteLabel] = useState('收藏单词')
+
+  useEffect(() => {
+    setCopyLabel('复制结果')
+    setFavoriteLabel('收藏单词')
+  }, [result?.source_text, streamText])
 
   const favoritePayload = useMemo(() => {
     if (!result || result.mode !== 'word') {
@@ -49,7 +59,10 @@ export function TranslationWorkbench() {
   }, [result])
 
   return (
-    <SectionCard title="输入翻译工作台" description="现在这里不仅能测句子翻译，还能联动多引擎、命名拆分、复制、朗读和发送到弹窗。">
+    <SectionCard
+      title="输入翻译工作台"
+      description="这里直接验证单词、句子、流式输出、多引擎对照和 popup 联动。"
+    >
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -57,17 +70,18 @@ export function TranslationWorkbench() {
             <div className="flex flex-wrap gap-2">
               <StatusPill icon={<Translate size={14} weight="duotone" />} label={`请求模式 ${mode}`} tone="accent" />
               {resolvedMode ? <StatusPill icon={<Waveform size={14} weight="duotone" />} label={`实际模式 ${resolvedMode}`} /> : null}
+              {streaming ? <StatusPill icon={<Sparkle size={14} weight="duotone" />} label="Streaming" tone="accent" /> : null}
             </div>
           </div>
 
           <Field
             label="输入英文文本"
-            description="自动模式会在单词、句子和开发者命名拆分之间选择最合适的链路。"
+            description="自动模式会在单词、句子和开发者命名拆词之间自动切换。"
             errorText={error ?? undefined}
           >
             <textarea
               className={`${fieldControlClassName} min-h-36 resize-none`}
-              placeholder="输入英文单词、完整句子或变量名，例如 getUserDisplayName"
+              placeholder="输入英文单词、句子或变量名，例如 getUserDisplayName"
               value={input}
               onChange={(event) => setInput(event.target.value)}
             />
@@ -88,13 +102,17 @@ export function TranslationWorkbench() {
 
           <div className="flex flex-wrap gap-3">
             <Button icon={<Translate size={16} weight="duotone" />} variant="primary" disabled={loading} onClick={() => void translate()}>
-              {loading ? '翻译中…' : '开始翻译'}
+              {loading ? '翻译中...' : '开始翻译'}
             </Button>
             <Button
               icon={<Copy size={16} weight="duotone" />}
               variant="secondary"
               disabled={!result}
-              onClick={() => result ? void navigator.clipboard.writeText(result.translated_text).then(() => setCopyLabel('已复制')) : undefined}
+              onClick={() =>
+                result
+                  ? void navigator.clipboard.writeText(result.translated_text).then(() => setCopyLabel('已复制'))
+                  : undefined
+              }
             >
               {copyLabel}
             </Button>
@@ -102,7 +120,7 @@ export function TranslationWorkbench() {
               icon={<Sparkle size={16} weight="duotone" />}
               variant="secondary"
               disabled={!result}
-              onClick={() => result ? void pushPopupResult(result) : undefined}
+              onClick={() => (result ? void pushPopupResult(result) : undefined)}
             >
               发送到弹窗
             </Button>
@@ -110,7 +128,7 @@ export function TranslationWorkbench() {
               icon={<SpeakerHigh size={16} weight="duotone" />}
               variant="ghost"
               disabled={!result}
-              onClick={() => result ? speakText(result.source_text) : undefined}
+              onClick={() => (result ? speakText(result.source_text) : undefined)}
             >
               朗读原文
             </Button>
@@ -134,12 +152,24 @@ export function TranslationWorkbench() {
         </div>
 
         <div className="rounded-[1.8rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-          {!result && !loading ? (
+          {!result && !loading && !streamText ? (
             <EmptyState
-              description="你可以输入单个单词验证离线词典，也可以直接输入句子或变量名验证多链路调度。"
+              description="先输入一个单词或句子，再观察离线词典、在线 fallback 和 SSE 流式输出。"
               icon={<Sparkle size={22} weight="duotone" />}
               title="等待一次真实翻译"
             />
+          ) : null}
+
+          {streamText && !result ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {providerHint ? <StatusPill icon={<Translate size={14} weight="duotone" />} label={providerHint} tone="accent" /> : null}
+                <StatusPill icon={<Sparkle size={14} weight="duotone" />} label={streaming ? 'Streaming' : 'Stream Ready'} />
+              </div>
+              <div className="rounded-[1.4rem] border border-white/10 bg-slate-950/60 p-4 text-sm leading-8 text-slate-100">
+                <p className="whitespace-pre-wrap break-words">{streamText}</p>
+              </div>
+            </div>
           ) : null}
 
           {result ? (

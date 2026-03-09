@@ -1,5 +1,7 @@
 use tauri::AppHandle;
 
+use crate::commands::settings::AppSettings;
+
 #[derive(Debug, Clone)]
 pub struct DictEntry {
     pub word: String,
@@ -24,8 +26,9 @@ pub trait SentenceTranslateProvider {
     fn id(&self) -> &'static str;
     fn translate(
         &self,
+        app: &AppHandle,
         text: &str,
-        api_key: Option<&str>,
-        proxy: Option<&str>,
+        settings: &AppSettings,
+        emit_stream: bool,
     ) -> Result<SentenceTranslation, String>;
 }

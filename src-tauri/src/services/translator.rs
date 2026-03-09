@@ -4,8 +4,11 @@ use crate::api::baidu::BaiduProvider;
 use crate::api::deepl::DeepLProvider;
 use crate::api::ecdict::EcdictProvider;
 use crate::api::openai::OpenAIProvider;
-use crate::api::provider::{SentenceTranslateProvider, SentenceTranslation, WordLookupProvider};
+use crate::api::provider::{
+    DictEntry, SentenceTranslateProvider, SentenceTranslation, WordLookupProvider,
+};
 use crate::api::tencent::TencentProvider;
+use crate::api::youdao::YoudaoProvider;
 use crate::commands::settings::{load_settings_from_db, AppSettings};
 use crate::db::connection;
 use crate::services::{cache, dev_name, phonetic};
@@ -82,7 +85,8 @@ fn provider_label(provider: &str) -> Option<String> {
     Some(
         match provider {
             "ecdict" => "ECDICT 离线词典",
-            "ecdict-devsplit" => "开发者命名拆分",
+            "ecdict-devsplit" => "开发者命名拆词",
+            "youdao" => "有道词典",
             "deepl" => "DeepL",
             "tencent" => "腾讯翻译",
             "baidu" => "百度翻译",
@@ -147,7 +151,12 @@ fn resolve_sentence_provider_order(settings: &AppSettings) -> Vec<String> {
     }
 
     if chain.is_empty() {
-        chain.extend(["deepl".into(), "tencent".into(), "baidu".into()]);
+        chain.extend([
+            "deepl".into(),
+            "tencent".into(),
+            "baidu".into(),
+            "openai".into(),
+        ]);
     }
 
     chain
@@ -165,6 +174,7 @@ fn resolve_multi_engine_targets(settings: &AppSettings, provider_order: &[String
         if provider == "ecdict" || targets.contains(&provider) {
             continue;
         }
+
         targets.push(provider);
         if targets.len() >= 3 {
             break;
@@ -172,7 +182,12 @@ fn resolve_multi_engine_targets(settings: &AppSettings, provider_order: &[String
     }
 
     if targets.is_empty() {
-        targets.extend(["deepl".into(), "tencent".into(), "baidu".into(), "openai".into()]);
+        targets.extend([
+            "deepl".into(),
+            "tencent".into(),
+            "baidu".into(),
+            "openai".into(),
+        ]);
     }
 
     targets
@@ -203,17 +218,17 @@ fn translate_dev_identifier(
     }
 
     let notice = if missing_parts.is_empty() {
-        format!("已按开发者命名拆分：{}", segments.join(" / "))
+        format!("已按开发者命名拆词：{}", segments.join(" / "))
     } else {
         format!(
-            "已按开发者命名拆分，部分片段未命中：{}",
+            "已按开发者命名拆词，但部分片段未命中：{}",
             missing_parts.join(", ")
         )
     };
 
     let result = TranslationResult {
         source_text: text.into(),
-        translated_text: translated_parts.join(" · "),
+        translated_text: translated_parts.join(" / "),
         provider: "ecdict-devsplit".into(),
         provider_label: provider_label("ecdict-devsplit"),
         mode: TranslationMode::Sentence,
@@ -230,38 +245,67 @@ fn translate_dev_identifier(
         result.mode,
         &result.provider,
     )?;
+
     Ok(Some(result))
 }
 
-fn translate_word(app: &tauri::AppHandle, text: &str) -> Result<TranslationResult, String> {
-    let provider = EcdictProvider;
-    let entry = provider
-        .lookup(app, text)?
-        .ok_or_else(|| format!("离线词典未找到单词：{}", text))?;
+fn build_word_result(
+    source_text: String,
+    provider: &str,
+    translation: String,
+    entry: DictEntry,
+    notice: Option<String>,
+) -> TranslationResult {
+    let phonetic_text = entry.phonetic.clone().unwrap_or_default();
+    let definitions = split_definitions(&translation);
 
-    let phonetic = entry.phonetic.clone().unwrap_or_default();
-    let definitions = split_definitions(&entry.translation);
-
-    let result = TranslationResult {
-        source_text: entry.word.clone(),
-        translated_text: entry.translation.clone(),
-        provider: provider.id().into(),
-        provider_label: provider_label(provider.id()),
+    TranslationResult {
+        source_text,
+        translated_text: translation,
+        provider: provider.into(),
+        provider_label: provider_label(provider),
         mode: TranslationMode::Word,
         word_detail: Some(WordDetail {
             phonetic_us: entry.phonetic.clone(),
             phonetic_uk: entry.phonetic,
-            chinese_phonetic: if phonetic.is_empty() {
+            chinese_phonetic: if phonetic_text.is_empty() {
                 "暂无音标谐音".into()
             } else {
-                phonetic::to_chinese_hint(&phonetic)
+                phonetic::to_chinese_hint(&phonetic_text)
             },
             definitions,
             pos: entry.pos.or(entry.exchange),
         }),
         from_cache: false,
-        notice: Some("已按单词模式解析".into()),
+        notice,
         alternatives: Vec::new(),
+    }
+}
+
+fn translate_word(app: &tauri::AppHandle, text: &str) -> Result<TranslationResult, String> {
+    let provider = EcdictProvider;
+    let result = if let Some(entry) = provider.lookup(app, text)? {
+        build_word_result(
+            entry.word.clone(),
+            provider.id(),
+            entry.translation.clone(),
+            entry,
+            Some("已按单词模式解析".into()),
+        )
+    } else {
+        let settings = load_settings_from_db(app)?;
+        let youdao = YoudaoProvider;
+        let entry = youdao.lookup(&settings, text)?.ok_or_else(|| {
+            format!("离线词典和有道词典都未找到该单词：{text}")
+        })?;
+
+        build_word_result(
+            entry.word.clone(),
+            "youdao",
+            entry.translation.clone(),
+            entry,
+            Some("ECDICT 未命中，已回退到有道词典".into()),
+        )
     };
 
     store_history(
@@ -271,13 +315,16 @@ fn translate_word(app: &tauri::AppHandle, text: &str) -> Result<TranslationResul
         result.mode,
         &result.provider,
     )?;
+
     Ok(result)
 }
 
 fn run_sentence_provider(
+    app: &tauri::AppHandle,
     provider: &dyn SentenceTranslateProvider,
     settings: &AppSettings,
     text: &str,
+    emit_stream: bool,
 ) -> Result<SentenceAlternative, String> {
     if let Some(cached) = cache::get(provider.id(), "en", "zh", text) {
         return Ok(SentenceAlternative {
@@ -291,8 +338,7 @@ fn run_sentence_provider(
         });
     }
 
-    let proxy = (!settings.proxy.trim().is_empty()).then_some(settings.proxy.as_str());
-    match provider.translate(text, settings.api_key(provider.id()), proxy) {
+    match provider.translate(app, text, settings, emit_stream) {
         Ok(SentenceTranslation { translated_text, note }) => {
             cache::put(
                 provider.id(),
@@ -352,14 +398,14 @@ fn translate_sentence(app: &tauri::AppHandle, text: &str) -> Result<TranslationR
             continue;
         };
 
-        match run_sentence_provider(provider.as_ref(), &settings, text) {
+        match run_sentence_provider(app, provider.as_ref(), &settings, text, successes.is_empty()) {
             Ok(result) => {
                 successes.push(result);
                 if !settings.multi_engine_enabled {
                     break;
                 }
             }
-            Err(error) => failures.push(format!("{}：{}", provider.id(), error)),
+            Err(error) => failures.push(format!("{}: {}", provider.id(), error)),
         }
     }
 
@@ -376,7 +422,7 @@ fn translate_sentence(app: &tauri::AppHandle, text: &str) -> Result<TranslationR
         result.notice = append_notice(
             result.notice,
             format!(
-                "主翻译源不可用，已切换至 {}",
+                "主翻译源不可用，已切换到 {}",
                 result.provider_label.clone().unwrap_or(result.provider.clone())
             ),
         );
@@ -404,13 +450,10 @@ fn translate_sentence(app: &tauri::AppHandle, text: &str) -> Result<TranslationR
         result.mode,
         &result.provider,
     )?;
+
     Ok(result)
 }
 
-// Cycle 03/05/06 的主调度统一收口在这里：
-// 1. `auto` 模式自动区分单词 / 句子；
-// 2. 开发者命名优先拆词后聚合；
-// 3. 句子链路支持缓存、降级链、代理与多引擎对照。
 pub fn translate(
     app: &tauri::AppHandle,
     text: &str,

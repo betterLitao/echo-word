@@ -50,6 +50,25 @@ fn emit_translation_error(app: &tauri::AppHandle, message: &str) {
     );
 }
 
+fn emit_translation_result(app: &tauri::AppHandle, result: &TranslationResult) -> Result<(), String> {
+    app.emit("translation-result", result)
+        .map_err(|error| error.to_string())
+}
+
+fn emit_stream_placeholder(app: &tauri::AppHandle, text: &str) {
+    let _ = app.emit(
+        "translation-stream",
+        serde_json::json!({
+            "source_text": text,
+            "provider": "pending",
+            "provider_label": null,
+            "delta_text": "",
+            "stream_text": "",
+            "done": false,
+        }),
+    );
+}
+
 fn report_popup_error(app: &tauri::AppHandle, message: &str) {
     emit_translation_error(app, message);
     let _ = show_popup_near_cursor(app);
@@ -61,6 +80,9 @@ pub(crate) fn translate_text_and_show_popup_internal(
     mode: Option<String>,
     notice: Option<&str>,
 ) -> Result<TranslationResult, String> {
+    emit_stream_placeholder(&app, &text);
+    let _ = show_popup_near_cursor(&app);
+
     let mut result = match translator::translate(&app, &text, resolve_mode(mode)) {
         Ok(result) => result,
         Err(error) => {
@@ -76,7 +98,7 @@ pub(crate) fn translate_text_and_show_popup_internal(
         });
     }
 
-    if let Err(error) = app.emit("translation-result", &result) {
+    if let Err(error) = emit_translation_result(&app, &result) {
         let error = error.to_string();
         report_popup_error(&app, &error);
         return Err(error);
@@ -137,7 +159,9 @@ pub fn translate(
     text: String,
     mode: Option<String>,
 ) -> Result<TranslationResult, String> {
-    translator::translate(&app, &text, resolve_mode(mode))
+    let result = translator::translate(&app, &text, resolve_mode(mode))?;
+    let _ = emit_translation_result(&app, &result);
+    Ok(result)
 }
 
 #[tauri::command]

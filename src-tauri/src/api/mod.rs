@@ -1,6 +1,9 @@
 pub mod baidu;
 pub mod deepl;
 pub mod ecdict;
-pub mod provider;
-pub mod tencent;
+pub mod http;
 pub mod openai;
+pub mod provider;
+pub mod signing;
+pub mod tencent;
+pub mod youdao;

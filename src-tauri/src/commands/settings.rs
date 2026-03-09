@@ -18,12 +18,19 @@ pub struct AppSettings {
     pub translation_provider: String,
     pub fallback_chain: Vec<String>,
     pub api_keys: serde_json::Map<String, Value>,
+    pub youdao_app_key: String,
+    pub youdao_app_secret: String,
+    pub tencent_secret_id: String,
+    pub tencent_secret_key: String,
+    pub baidu_app_id: String,
+    pub baidu_secret_key: String,
     pub theme: String,
     pub data_dir: String,
     pub privacy_mode: bool,
     pub clipboard_listen: bool,
     pub auto_update: bool,
-    pub proxy: String,
+    pub proxy_enabled: bool,
+    pub proxy_url: String,
     pub http_api_port: u16,
     pub onboarding_completed: bool,
     pub dictionary_version: String,
@@ -39,12 +46,19 @@ impl Default for AppSettings {
             translation_provider: "ecdict".into(),
             fallback_chain: vec!["deepl".into(), "tencent".into(), "baidu".into()],
             api_keys: serde_json::Map::new(),
+            youdao_app_key: String::new(),
+            youdao_app_secret: String::new(),
+            tencent_secret_id: String::new(),
+            tencent_secret_key: String::new(),
+            baidu_app_id: String::new(),
+            baidu_secret_key: String::new(),
             theme: "system".into(),
             data_dir: "默认应用目录".into(),
             privacy_mode: false,
             clipboard_listen: false,
             auto_update: true,
-            proxy: String::new(),
+            proxy_enabled: false,
+            proxy_url: String::new(),
             http_api_port: 16888,
             onboarding_completed: false,
             dictionary_version: "core".into(),
@@ -58,6 +72,12 @@ impl AppSettings {
     pub fn api_key(&self, provider: &str) -> Option<&str> {
         self.api_keys.get(provider).and_then(|value| value.as_str())
     }
+
+    pub fn active_proxy(&self) -> Option<&str> {
+        self.proxy_enabled
+            .then_some(self.proxy_url.trim())
+            .filter(|value| !value.is_empty())
+    }
 }
 
 fn parse_value<T: serde::de::DeserializeOwned>(raw: Option<&String>, default: T) -> T {
@@ -65,7 +85,6 @@ fn parse_value<T: serde::de::DeserializeOwned>(raw: Option<&String>, default: T)
         .unwrap_or(default)
 }
 
-// settings 表底层是 KV 结构，这里在命令层把它还原为前端可直接消费的完整配置对象。
 pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSettings, String> {
     migration::run_migrations(app)?;
     let conn = connection::open_app_db(app)?;
@@ -81,15 +100,24 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
     let pairs = rows
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| error.to_string())?;
-
     let map = pairs
         .into_iter()
         .collect::<std::collections::HashMap<String, String>>();
+
     let defaults = AppSettings::default();
     let api_keys = crypto::decrypt_api_keys(
         app,
         parse_value(map.get("api_keys"), defaults.api_keys.clone()),
     );
+
+    let legacy_proxy: String = parse_value(map.get("proxy"), String::new());
+    let proxy_url_default = if legacy_proxy.trim().is_empty() {
+        defaults.proxy_url.clone()
+    } else {
+        legacy_proxy
+    };
+    let proxy_url = parse_value(map.get("proxy_url"), proxy_url_default);
+    let proxy_enabled = parse_value(map.get("proxy_enabled"), !proxy_url.trim().is_empty());
 
     Ok(AppSettings {
         shortcut_translate: parse_value(map.get("shortcut_translate"), defaults.shortcut_translate),
@@ -97,12 +125,19 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         translation_provider: parse_value(map.get("translation_provider"), defaults.translation_provider),
         fallback_chain: parse_value(map.get("fallback_chain"), defaults.fallback_chain),
         api_keys,
+        youdao_app_key: parse_value(map.get("youdao_app_key"), defaults.youdao_app_key),
+        youdao_app_secret: parse_value(map.get("youdao_app_secret"), defaults.youdao_app_secret),
+        tencent_secret_id: parse_value(map.get("tencent_secret_id"), defaults.tencent_secret_id),
+        tencent_secret_key: parse_value(map.get("tencent_secret_key"), defaults.tencent_secret_key),
+        baidu_app_id: parse_value(map.get("baidu_app_id"), defaults.baidu_app_id),
+        baidu_secret_key: parse_value(map.get("baidu_secret_key"), defaults.baidu_secret_key),
         theme: parse_value(map.get("theme"), defaults.theme),
         data_dir: parse_value(map.get("data_dir"), defaults.data_dir),
         privacy_mode: parse_value(map.get("privacy_mode"), defaults.privacy_mode),
         clipboard_listen: parse_value(map.get("clipboard_listen"), defaults.clipboard_listen),
         auto_update: parse_value(map.get("auto_update"), defaults.auto_update),
-        proxy: parse_value(map.get("proxy"), defaults.proxy),
+        proxy_enabled,
+        proxy_url,
         http_api_port: parse_value(map.get("http_api_port"), defaults.http_api_port),
         onboarding_completed: parse_value(map.get("onboarding_completed"), defaults.onboarding_completed),
         dictionary_version: parse_value(map.get("dictionary_version"), defaults.dictionary_version),
@@ -133,8 +168,6 @@ fn validate_shortcut_value(key: &str, value: &Value) -> Result<(), String> {
 pub fn update_setting(app: tauri::AppHandle, key: String, value: Value) -> Result<(), String> {
     validate_shortcut_value(&key, &value)?;
 
-    // API Key 在设置层先做轻量加密，避免以明文直接落库；
-    // 将来若接入系统钥匙串，这里仍然可以保持同一调用入口。
     let stored_value = if key == "api_keys" {
         crypto::encrypt_api_key_map(&app, value)
     } else {

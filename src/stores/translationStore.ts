@@ -5,14 +5,15 @@ import {
   type ResolvedTranslationMode,
   type TranslationMode,
   type TranslationResult,
+  type TranslationStreamEvent,
 } from '../lib/tauri'
 
-// Cycle 03 开始前端已经需要同时承接单词和句子两条链路，
-// 所以 store 不再只保存“结果”，还要保存“请求模式 / 实际模式 / 状态提示”。
 interface TranslationState {
   input: string
   result: TranslationResult | null
   loading: boolean
+  streaming: boolean
+  streamText: string
   error: string | null
   mode: TranslationMode
   resolvedMode: ResolvedTranslationMode | null
@@ -24,6 +25,8 @@ interface TranslationState {
   requestFocus: () => void
   primeInput: (input: string, mode?: TranslationMode) => void
   applyResult: (result: TranslationResult, requestedMode?: TranslationMode) => void
+  applyStreamChunk: (event: TranslationStreamEvent) => void
+  applyError: (message: string) => void
   translate: (text?: string, requestedMode?: TranslationMode) => Promise<TranslationResult | null>
   translateCurrentMode: (mode: TranslationMode) => Promise<TranslationResult | null>
   seedDemo: () => void
@@ -35,13 +38,23 @@ function buildEmptyInputMessage(mode: TranslationMode) {
 }
 
 function buildAutoModeNote(mode: TranslationMode) {
-  return mode === 'auto' ? '自动模式会根据空格数量判断是单词还是句子。' : null
+  return mode === 'auto' ? '自动模式会根据输入内容判断单词或句子。' : null
+}
+
+function providerHintFromEvent(event: TranslationStreamEvent) {
+  if (!event.provider || event.provider === 'pending') {
+    return null
+  }
+
+  return event.provider_label ?? event.provider.toUpperCase()
 }
 
 export const useTranslationStore = create<TranslationState>((set, get) => ({
   input: 'This feature keeps your focus inside the editor.',
   result: null,
   loading: false,
+  streaming: false,
+  streamText: '',
   error: null,
   mode: 'auto',
   resolvedMode: null,
@@ -64,8 +77,10 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
       input,
       mode: nextMode,
       result: null,
-      error: null,
       loading: false,
+      streaming: false,
+      streamText: '',
+      error: null,
       providerHint: null,
       resolvedMode: resolveTranslationMode(nextMode, input),
       statusNote: buildAutoModeNote(nextMode),
@@ -78,11 +93,46 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
       result,
       input: result.source_text,
       loading: false,
+      streaming: false,
+      streamText: '',
       error: null,
       mode: nextMode,
       resolvedMode: result.mode,
       providerHint: result.provider_label ?? result.provider.toUpperCase(),
       statusNote: result.notice ?? (result.from_cache ? '结果来自缓存。' : null),
+    })
+  },
+  applyStreamChunk: (event) => {
+    const streamText = event.stream_text ?? ''
+    const hasContent = streamText.trim().length > 0
+    const isPending = event.provider === 'pending'
+
+    set((state) => ({
+      input: event.source_text || state.input,
+      result: null,
+      loading: !event.done,
+      streaming: !event.done && !isPending,
+      streamText,
+      error: null,
+      mode: state.mode === 'word' ? 'sentence' : state.mode,
+      resolvedMode: 'sentence',
+      providerHint: providerHintFromEvent(event) ?? state.providerHint,
+      statusNote: event.done
+        ? state.statusNote
+        : hasContent
+          ? '正在接收流式翻译结果...'
+          : '正在准备翻译请求...',
+    }))
+  },
+  applyError: (message) => {
+    set({
+      loading: false,
+      streaming: false,
+      streamText: '',
+      result: null,
+      providerHint: null,
+      statusNote: null,
+      error: message,
     })
   },
   translate: async (text, requestedMode) => {
@@ -94,14 +144,17 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
       return null
     }
 
-    // 手动模式优先于自动模式，保证用户主动切换后得到可预期结果。
     set({
+      input: query,
+      result: null,
       loading: true,
+      streaming: false,
+      streamText: '',
       error: null,
       mode: nextMode,
       resolvedMode: resolveTranslationMode(nextMode, query),
       providerHint: null,
-      statusNote: nextMode === 'sentence' ? '正在请求句子翻译…' : '正在请求单词翻译…',
+      statusNote: nextMode === 'sentence' ? '正在请求句子翻译...' : '正在请求单词翻译...',
     })
 
     try {
@@ -109,13 +162,7 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
       get().applyResult(result, nextMode)
       return result
     } catch (error) {
-      set({
-        loading: false,
-        result: null,
-        providerHint: null,
-        statusNote: null,
-        error: error instanceof Error ? error.message : '翻译失败，请稍后重试',
-      })
+      get().applyError(error instanceof Error ? error.message : '翻译失败，请稍后重试')
       return null
     }
   },
@@ -127,6 +174,8 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
     set({
       result: null,
       loading: false,
+      streaming: false,
+      streamText: '',
       error: null,
       providerHint: null,
       statusNote: null,

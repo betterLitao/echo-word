@@ -1,6 +1,10 @@
+use std::time::Duration;
+
 use serde::Deserialize;
 
+use crate::api::http::build_blocking_client;
 use crate::api::provider::{SentenceTranslateProvider, SentenceTranslation};
+use crate::commands::settings::AppSettings;
 
 pub struct DeepLProvider;
 
@@ -12,18 +16,6 @@ struct DeepLTranslationItem {
 #[derive(Debug, Deserialize)]
 struct DeepLResponse {
     translations: Vec<DeepLTranslationItem>,
-}
-
-fn build_client(proxy: Option<&str>) -> Result<reqwest::blocking::Client, String> {
-    let mut builder = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(10));
-
-    if let Some(proxy) = proxy.filter(|value| !value.trim().is_empty()) {
-        builder = builder
-            .proxy(reqwest::Proxy::all(proxy).map_err(|error| error.to_string())?);
-    }
-
-    builder.build().map_err(|error| error.to_string())
 }
 
 impl DeepLProvider {
@@ -42,18 +34,20 @@ impl SentenceTranslateProvider for DeepLProvider {
 
     fn translate(
         &self,
+        _app: &tauri::AppHandle,
         text: &str,
-        api_key: Option<&str>,
-        proxy: Option<&str>,
+        settings: &AppSettings,
+        _emit_stream: bool,
     ) -> Result<SentenceTranslation, String> {
-        let Some(api_key) = api_key.filter(|value| !value.trim().is_empty()) else {
+        let Some(api_key) = settings.api_key(self.id()).filter(|value| !value.trim().is_empty())
+        else {
             if cfg!(debug_assertions) {
                 return Ok(Self::development_fallback(text));
             }
             return Err("未配置 DeepL API Key".into());
         };
 
-        let client = build_client(proxy)?;
+        let client = build_blocking_client(settings, Duration::from_secs(10))?;
         let response = client
             .post("https://api-free.deepl.com/v2/translate")
             .form(&[

@@ -1,13 +1,12 @@
 import { Sparkle, Translate } from '@phosphor-icons/react'
-import { listen } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import {
   addFavorite,
   getResultProviderLabel,
   hidePopup,
   isTauriRuntime,
   type TranslationMode,
-  type TranslationResult,
 } from '../../lib/tauri'
 import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
@@ -18,32 +17,42 @@ import { SentenceResult } from './SentenceResult'
 import { WordResult } from './WordResult'
 
 export function PopupWindow() {
+  useTauriTranslationEvents()
+
   const result = useTranslationStore((state) => state.result)
   const loading = useTranslationStore((state) => state.loading)
+  const streaming = useTranslationStore((state) => state.streaming)
+  const streamText = useTranslationStore((state) => state.streamText)
   const error = useTranslationStore((state) => state.error)
   const mode = useTranslationStore((state) => state.mode)
   const resolvedMode = useTranslationStore((state) => state.resolvedMode)
   const statusNote = useTranslationStore((state) => state.statusNote)
-  const applyResult = useTranslationStore((state) => state.applyResult)
+  const providerHint = useTranslationStore((state) => state.providerHint)
   const seedDemo = useTranslationStore((state) => state.seedDemo)
-  const clear = useTranslationStore((state) => state.clear)
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
+
   const [favoriteLabel, setFavoriteLabel] = useState('收藏')
-  const [eventError, setEventError] = useState<string | null>(null)
   const [copyLabel, setCopyLabel] = useState('复制')
   const [actionHint, setActionHint] = useState<string | null>(null)
   const actionBarRef = useRef<HTMLDivElement | null>(null)
 
   const canFavorite = useMemo(() => result?.mode === 'word', [result])
-  const displayError = error ?? eventError
+
+  useEffect(() => {
+    setFavoriteLabel('收藏')
+    setCopyLabel('复制')
+    setActionHint(null)
+  }, [result?.source_text, streamText])
 
   const getActionButtons = useCallback(() => {
     if (!actionBarRef.current) {
       return []
     }
 
-    return Array.from(actionBarRef.current.querySelectorAll<HTMLButtonElement>('[data-popup-action]:not(:disabled)'))
+    return Array.from(
+      actionBarRef.current.querySelectorAll<HTMLButtonElement>('[data-popup-action]:not(:disabled)'),
+    )
   }, [])
 
   const focusActionAt = useCallback(
@@ -68,7 +77,6 @@ export function PopupWindow() {
 
       const currentIndex = buttons.findIndex((button) => button === document.activeElement)
       const nextIndex = currentIndex === -1 ? (direction === 1 ? 0 : buttons.length - 1) : currentIndex + direction
-
       focusActionAt(nextIndex)
     },
     [focusActionAt, getActionButtons],
@@ -140,40 +148,11 @@ export function PopupWindow() {
   useEffect(() => {
     if (!isTauriRuntime()) {
       seedDemo()
-      return
     }
-
-    let unlistenResult: (() => void) | undefined
-    let unlistenError: (() => void) | undefined
-
-    void listen<TranslationResult>('translation-result', (event) => {
-      setFavoriteLabel('收藏')
-      setCopyLabel('复制')
-      setEventError(null)
-      setActionHint(null)
-      applyResult(event.payload)
-    }).then((fn) => {
-      unlistenResult = fn
-    })
-
-    void listen<{ message: string }>('translation-error', (event) => {
-      if (event.payload.message) {
-        clear()
-        setActionHint(null)
-        setEventError(event.payload.message)
-      }
-    }).then((fn) => {
-      unlistenError = fn
-    })
-
-    return () => {
-      unlistenResult?.()
-      unlistenError?.()
-    }
-  }, [applyResult, clear, seedDemo])
+  }, [seedDemo])
 
   useEffect(() => {
-    if (loading || displayError || !result) {
+    if (loading || error || !result) {
       return
     }
 
@@ -182,7 +161,7 @@ export function PopupWindow() {
     }, 0)
 
     return () => window.clearTimeout(timer)
-  }, [canFavorite, displayError, focusActionAt, loading, result])
+  }, [error, focusActionAt, loading, result])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -214,7 +193,6 @@ export function PopupWindow() {
       if (event.key === 'Enter') {
         const buttons = getActionButtons()
         const activeButton = buttons.find((button) => button === document.activeElement)
-
         if (activeButton) {
           event.preventDefault()
           activeButton.click()
@@ -276,7 +254,7 @@ export function PopupWindow() {
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-emerald-300/88">Popup</p>
             <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
-              {result?.mode === 'sentence' ? '句子翻译结果' : '单词翻译结果'}
+              {result?.mode === 'sentence' || streamText ? '句子翻译结果' : '单词翻译结果'}
             </h1>
           </div>
           <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-emerald-200">
@@ -289,28 +267,39 @@ export function PopupWindow() {
           {resolvedMode ? <StatusPill icon={<Translate size={14} weight="duotone" />} label={`当前 ${resolvedMode}`} tone="accent" /> : null}
         </div>
 
-        {loading ? (
+        {loading && !streamText ? (
           <div className="relative space-y-3 py-2">
             <div className="h-24 animate-pulse rounded-[1.4rem] bg-white/[0.05]" />
             <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/[0.04]" />
           </div>
         ) : null}
 
-        {!loading && displayError ? (
-          <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{displayError}</div>
+        {streamText && !result ? (
+          <div className="relative space-y-4 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
+            <div className="flex flex-wrap gap-2">
+              <StatusPill icon={<Sparkle size={14} weight="duotone" />} label={streaming ? 'Streaming' : 'Stream Ready'} tone="accent" />
+            </div>
+            <div className="text-sm leading-7 text-slate-100">
+              <p className="whitespace-pre-wrap break-words">{streamText}</p>
+            </div>
+          </div>
         ) : null}
 
-        {!loading && !displayError && result ? (
+        {!loading && error ? (
+          <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{error}</div>
+        ) : null}
+
+        {!loading && !error && result ? (
           <div className="relative">{result.mode === 'word' ? <WordResult data={result} /> : <SentenceResult data={result} />}</div>
         ) : null}
 
-        {!loading && !displayError && !result ? (
+        {!loading && !error && !result && !streamText ? (
           <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果...</div>
         ) : null}
 
-        {result && (statusNote || actionHint) ? (
+        {(result || streamText) && (statusNote || actionHint || providerHint) ? (
           <div className="relative mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-3 text-xs leading-6 text-slate-400">
-            {getResultProviderLabel(result)} · {actionHint ?? statusNote}
+            {(result ? getResultProviderLabel(result) : providerHint ?? 'OpenAI')} · {actionHint ?? statusNote}
           </div>
         ) : null}
 
