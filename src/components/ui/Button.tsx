@@ -1,5 +1,6 @@
 import { animate, motion, type HTMLMotionProps, useMotionValue, useTransform } from 'framer-motion'
 import type { ReactNode } from 'react'
+import { useEffect } from 'react'
 import { cx } from '../../lib/utils'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost'
@@ -45,6 +46,12 @@ export function Button({
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const rotate = useTransform(x, [-8, 8], [-1.5, 1.5])
+
+  // 确保初始状态为 0，避免首次渲染时出现异常偏移
+  useEffect(() => {
+    x.set(0)
+    y.set(0)
+  }, [])
 
   return (
     <motion.button

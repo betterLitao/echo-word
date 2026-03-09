@@ -11,7 +11,8 @@ import { Button } from '../components/ui/Button'
 import { StatusPill } from '../components/ui/StatusPill'
 import { useSettingsStore } from '../stores/settingsStore'
 
-const steps = ['欢迎', '权限', '翻译源', '快捷键', '完成']
+const isWindows = navigator.userAgent.includes('Windows')
+const steps = isWindows ? ['欢迎', '翻译源', '快捷键', '完成'] : ['欢迎', '权限', '翻译源', '快捷键', '完成']
 
 export function OnboardingPage() {
   const navigate = useNavigate()
@@ -25,11 +26,17 @@ export function OnboardingPage() {
       case 0:
         return <WelcomeStep />
       case 1:
-        return <PermissionStep permissionGranted={permissionGranted} onChecked={setPermissionGranted} />
+        return isWindows ? <ApiKeyStep /> : <PermissionStep permissionGranted={permissionGranted} onChecked={setPermissionGranted} />
       case 2:
-        return <ApiKeyStep />
+        return isWindows ? <ShortcutStep /> : <ApiKeyStep />
       case 3:
-        return <ShortcutStep />
+        return isWindows ? (
+          <div className="space-y-5">
+            <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">Ready</p>
+            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">基础引导已完成，接下来进入主工作台。</h2>
+            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在你已经具备离线单词翻译、句子翻译、收藏、历史回放、系统快捷键与本地 HTTP API 的完整基础能力。后续可继续按需开启剪贴板监听和多引擎对照。</p>
+          </div>
+        ) : <ShortcutStep />
       default:
         return (
           <div className="space-y-5">
