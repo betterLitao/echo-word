@@ -79,14 +79,14 @@ fn handle_translate(mut request: Request, app: &tauri::AppHandle) {
 }
 
 fn handle_selection_trigger(request: Request, app: &tauri::AppHandle) {
-    match commands::translate::request_selection_translate(app.clone()) {
+    match commands::translate::request_selection_translate_internal(app.clone(), "http-api") {
         Ok(()) => respond_json(request, json!({ "ok": true }), StatusCode(200)),
         Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
     }
 }
 
 fn handle_input_trigger(request: Request, app: &tauri::AppHandle) {
-    match commands::translate::request_input_translate(app.clone()) {
+    match commands::translate::request_input_translate_internal(app, "http-api") {
         Ok(()) => respond_json(request, json!({ "ok": true }), StatusCode(200)),
         Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
     }

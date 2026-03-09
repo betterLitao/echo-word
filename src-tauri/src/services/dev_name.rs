@@ -3,15 +3,17 @@ pub fn split_identifier(text: &str) -> Vec<String> {
         return Vec::new();
     }
 
+    let chars: Vec<char> = text.chars().collect();
     let mut normalized = String::with_capacity(text.len() + 8);
-    let mut previous: Option<char> = None;
 
-    for character in text.chars() {
+    for (index, character) in chars.iter().copied().enumerate() {
+        let previous = index.checked_sub(1).and_then(|current| chars.get(current)).copied();
+        let next = chars.get(index + 1).copied();
+
         if matches!(character, '_' | '-' | '/' | '.') {
             if !normalized.ends_with(' ') {
                 normalized.push(' ');
             }
-            previous = Some(character);
             continue;
         }
 
@@ -19,24 +21,26 @@ pub fn split_identifier(text: &str) -> Vec<String> {
             if !normalized.ends_with(' ') {
                 normalized.push(' ');
             }
-            previous = Some(character);
             continue;
         }
 
         if character.is_ascii_uppercase() {
             if let Some(previous_char) = previous {
-                if previous_char.is_ascii_lowercase() || previous_char.is_ascii_digit() {
+                let acronym_boundary = previous_char.is_ascii_uppercase()
+                    && matches!(next, Some(next_char) if next_char.is_ascii_lowercase());
+                if previous_char.is_ascii_lowercase()
+                    || previous_char.is_ascii_digit()
+                    || acronym_boundary
+                {
                     normalized.push(' ');
                 }
             }
 
             normalized.push(character.to_ascii_lowercase());
-            previous = Some(character);
             continue;
         }
 
         normalized.push(character.to_ascii_lowercase());
-        previous = Some(character);
     }
 
     normalized

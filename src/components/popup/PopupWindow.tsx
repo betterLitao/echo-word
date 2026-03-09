@@ -64,6 +64,17 @@ export function PopupWindow() {
     (value: string | null) => setActionHintState({ scope: actionScope, value }),
     [actionScope],
   )
+  const isEditableTarget = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) {
+      return false
+    }
+
+    return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+  }, [])
+  const hasUserSelection = useCallback(() => {
+    const selection = window.getSelection()
+    return Boolean(selection?.toString().trim())
+  }, [])
 
   const getActionButtons = useCallback(() => {
     if (!actionBarRef.current) {
@@ -197,10 +208,18 @@ export function PopupWindow() {
       }
 
       if ((event.ctrlKey || event.metaKey) && normalizedKey === 'c') {
+        if (hasUserSelection()) {
+          return
+        }
+
         if (result) {
           event.preventDefault()
           handleCopy()
         }
+        return
+      }
+
+      if (isEditableTarget(event.target)) {
         return
       }
 
@@ -259,7 +278,7 @@ export function PopupWindow() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canFavorite, focusNextAction, getActionButtons, handleCopy, handleFavorite, handleModeChange, handleSpeak, result])
+  }, [canFavorite, focusNextAction, getActionButtons, handleCopy, handleFavorite, handleModeChange, handleSpeak, hasUserSelection, isEditableTarget, result])
 
   return (
     <div

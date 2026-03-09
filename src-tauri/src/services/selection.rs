@@ -34,6 +34,18 @@ fn copy_shortcut_pressed() -> bool {
     false
 }
 
+#[cfg(target_os = "windows")]
+fn clipboard_sequence_number() -> u32 {
+    use windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber;
+
+    unsafe { GetClipboardSequenceNumber() }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn clipboard_sequence_number() -> u32 {
+    0
+}
+
 pub fn start_selection_watcher(app: tauri::AppHandle) {
     if !cfg!(target_os = "windows") || SELECTION_WATCHER_STARTED.get().is_some() {
         return;
@@ -50,6 +62,7 @@ pub fn start_selection_watcher(app: tauri::AppHandle) {
         let mut last_copy_at = Instant::now() - Duration::from_secs(10);
         let mut last_settings_refresh = Instant::now() - settings_refresh_interval;
         let mut clipboard_listen_enabled = false;
+        let mut pending_clipboard_sequence = clipboard_sequence_number();
 
         loop {
             if last_settings_refresh.elapsed() >= settings_refresh_interval {
@@ -71,6 +84,7 @@ pub fn start_selection_watcher(app: tauri::AppHandle) {
             let combo_down = copy_shortcut_pressed();
             if combo_down && !last_combo_down {
                 last_copy_at = Instant::now();
+                pending_clipboard_sequence = clipboard_sequence_number();
             }
             last_combo_down = combo_down;
 
@@ -78,6 +92,14 @@ pub fn start_selection_watcher(app: tauri::AppHandle) {
                 thread::sleep(poll_interval);
                 continue;
             }
+
+            let current_sequence = clipboard_sequence_number();
+            if current_sequence == pending_clipboard_sequence {
+                thread::sleep(poll_interval);
+                continue;
+            }
+            pending_clipboard_sequence = current_sequence;
+            last_copy_at = Instant::now() - copy_window;
 
             let clipboard_text = match platform::read_clipboard_text() {
                 Ok(text) => text,
@@ -87,10 +109,16 @@ pub fn start_selection_watcher(app: tauri::AppHandle) {
                 }
             };
 
-            let trimmed = clipboard_text.trim();
-            if should_translate_selection(trimmed) && trimmed != last_seen {
-                last_seen = trimmed.to_string();
-                if translate::request_selection_translate_internal(app.clone(), "selection-auto").is_err() {
+            let trimmed = clipboard_text.trim().to_string();
+            if should_translate_selection(&trimmed) && trimmed != last_seen {
+                last_seen = trimmed.clone();
+                if translate::translate_captured_text_internal(
+                    app.clone(),
+                    clipboard_text,
+                    "selection-auto",
+                )
+                .is_err()
+                {
                     last_seen.clear();
                 }
             }

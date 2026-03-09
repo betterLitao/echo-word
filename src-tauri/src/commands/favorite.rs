@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 use crate::commands::settings::load_settings_from_db;
@@ -127,8 +126,17 @@ fn load_all_favorites(app: &tauri::AppHandle) -> Result<Vec<FavoriteItem>, Strin
 }
 
 fn escape_csv_field(value: &str) -> String {
-    let escaped = value.replace('"', "\"\"");
+    let escaped = sanitize_spreadsheet_cell(value).replace('"', "\"\"");
     format!("\"{}\"", escaped)
+}
+
+fn sanitize_spreadsheet_cell(value: &str) -> String {
+    let trimmed = value.trim_start_matches([' ', '\t', '\r', '\n']);
+    if matches!(trimmed.chars().next(), Some('=' | '+' | '-' | '@')) {
+        format!("'{}", value)
+    } else {
+        value.to_string()
+    }
 }
 
 fn format_favorites_csv(items: &[FavoriteItem]) -> String {
@@ -157,9 +165,10 @@ fn format_favorites_anki(items: &[FavoriteItem]) -> String {
         .iter()
         .map(|item| {
             [
-                item.word.replace('\t', " "),
-                item.translation.replace('\t', " "),
-                item.phonetic.clone().unwrap_or_default().replace('\t', " "),
+                sanitize_spreadsheet_cell(&item.word).replace('\t', " "),
+                sanitize_spreadsheet_cell(&item.translation).replace('\t', " "),
+                sanitize_spreadsheet_cell(&item.phonetic.clone().unwrap_or_default())
+                    .replace('\t', " "),
             ]
             .join("\t")
         })

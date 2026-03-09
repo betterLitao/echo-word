@@ -22,6 +22,7 @@ export function InputTranslateDialog() {
   const providerHint = useTranslationStore((state) => state.providerHint)
   const setInput = useTranslationStore((state) => state.setInput)
   const setMode = useTranslationStore((state) => state.setMode)
+  const primeInput = useTranslationStore((state) => state.primeInput)
   const translate = useTranslationStore((state) => state.translate)
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export function InputTranslateDialog() {
 
     let unlisten: (() => void) | undefined
     void listen('input-translate-requested', () => {
+      primeInput('')
       setOpen(true)
       window.setTimeout(() => textareaRef.current?.focus(), 50)
     }).then((fn) => {
@@ -38,7 +40,7 @@ export function InputTranslateDialog() {
     })
 
     return () => unlisten?.()
-  }, [])
+  }, [primeInput])
 
   useEffect(() => {
     if (!open || !autoRun || !input.trim()) {

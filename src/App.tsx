@@ -27,6 +27,11 @@ const navItems = [
 function HomeRedirect() {
   const settings = useSettingsStore((state) => state.settings)
   const loading = useSettingsStore((state) => state.loading)
+  const loadSettings = useSettingsStore((state) => state.loadSettings)
+
+  useEffect(() => {
+    void loadSettings()
+  }, [loadSettings])
 
   if (loading) {
     return (

@@ -46,13 +46,26 @@ fn clamp_popup_position(
     height: u32,
     raw_x: i32,
     raw_y: i32,
+    popup_width: i32,
+    popup_height: i32,
 ) -> (i32, i32) {
-    let max_x = (min_x + width as i32 - DEFAULT_POPUP_WIDTH).max(min_x);
-    let max_y = (min_y + height as i32 - DEFAULT_POPUP_HEIGHT).max(min_y);
+    let max_x = (min_x + width as i32 - popup_width).max(min_x);
+    let max_y = (min_y + height as i32 - popup_height).max(min_y);
     (clamp(raw_x, min_x, max_x), clamp(raw_y, min_y, max_y))
 }
 
-fn resolve_popup_position_from_cursor(app: &tauri::AppHandle) -> Option<(i32, i32)> {
+fn popup_dimensions(window: &tauri::WebviewWindow) -> (i32, i32) {
+    window
+        .outer_size()
+        .map(|size| (size.width as i32, size.height as i32))
+        .unwrap_or((DEFAULT_POPUP_WIDTH, DEFAULT_POPUP_HEIGHT))
+}
+
+fn resolve_popup_position_from_cursor(
+    app: &tauri::AppHandle,
+    popup_width: i32,
+    popup_height: i32,
+) -> Option<(i32, i32)> {
     let cursor = app.cursor_position().ok()?;
     let monitor = app.monitor_from_point(cursor.x, cursor.y).ok()??;
     let work_area = monitor.work_area();
@@ -64,6 +77,8 @@ fn resolve_popup_position_from_cursor(app: &tauri::AppHandle) -> Option<(i32, i3
         work_area.size.height,
         cursor.x.round() as i32 + POPUP_OFFSET_X,
         cursor.y.round() as i32 + POPUP_OFFSET_Y,
+        popup_width,
+        popup_height,
     ))
 }
 
@@ -71,6 +86,8 @@ fn resolve_popup_position_from_memory(
     app: &tauri::AppHandle,
     x: i32,
     y: i32,
+    popup_width: i32,
+    popup_height: i32,
 ) -> Option<(i32, i32)> {
     let monitor = app.monitor_from_point(x as f64, y as f64).ok()??;
     let work_area = monitor.work_area();
@@ -82,6 +99,8 @@ fn resolve_popup_position_from_memory(
         work_area.size.height,
         x,
         y,
+        popup_width,
+        popup_height,
     ))
 }
 
@@ -97,14 +116,17 @@ pub(crate) fn show_popup_near_cursor(app: &tauri::AppHandle) -> Result<(), Strin
     let window = app
         .get_webview_window("popup")
         .ok_or_else(|| "popup window not found".to_string())?;
+    let (popup_width, popup_height) = popup_dimensions(&window);
 
     let target_position = load_settings_from_db(app)
         .ok()
         .and_then(|settings| match (settings.popup_last_x, settings.popup_last_y) {
-            (Some(x), Some(y)) => resolve_popup_position_from_memory(app, x, y),
+            (Some(x), Some(y)) => {
+                resolve_popup_position_from_memory(app, x, y, popup_width, popup_height)
+            }
             _ => None,
         })
-        .or_else(|| resolve_popup_position_from_cursor(app));
+        .or_else(|| resolve_popup_position_from_cursor(app, popup_width, popup_height));
 
     if let Some((target_x, target_y)) = target_position {
         let popup_position_state = app.state::<PopupPositionState>();
@@ -146,6 +168,16 @@ fn emit_stream_placeholder(app: &tauri::AppHandle, text: &str) {
 fn report_popup_error(app: &tauri::AppHandle, message: &str) {
     emit_translation_error(app, message);
     let _ = show_popup_near_cursor(app);
+}
+
+fn notice_for_selection_source(source: &str) -> Option<&'static str> {
+    match source {
+        "shortcut" => Some("来自全局快捷键"),
+        "http-api" => Some("来自本地 HTTP API"),
+        "selection-auto" => Some("来自 Windows Ctrl+C 选区监听"),
+        "clipboard-watch" => Some("来自剪贴板监听"),
+        _ => None,
+    }
 }
 
 pub(crate) fn translate_text_and_show_popup_internal(
@@ -198,6 +230,23 @@ pub(crate) fn request_input_translate_internal(
     .map_err(|error| error.to_string())
 }
 
+pub(crate) fn translate_captured_text_internal(
+    app: tauri::AppHandle,
+    text: String,
+    source: &str,
+) -> Result<(), String> {
+    let trimmed = text.trim();
+
+    if trimmed.is_empty() {
+        let error = "剪贴板里没有可翻译的文本".to_string();
+        report_popup_error(&app, &error);
+        return Err(error);
+    }
+
+    let notice = notice_for_selection_source(source);
+    translate_text_and_show_popup_internal(app, trimmed.to_string(), None, notice).map(|_| ())
+}
+
 pub(crate) fn request_selection_translate_internal(
     app: tauri::AppHandle,
     source: &str,
@@ -209,22 +258,7 @@ pub(crate) fn request_selection_translate_internal(
             return Err(error);
         }
     };
-    let trimmed = text.trim();
-
-    if trimmed.is_empty() {
-        let error = "Clipboard does not contain translatable text".to_string();
-        report_popup_error(&app, &error);
-        return Err(error);
-    }
-
-    let notice = match source {
-        "shortcut" => Some("Triggered from global shortcut clipboard flow"),
-        "http-api" => Some("Triggered from local HTTP API clipboard flow"),
-        "selection-auto" => Some("Triggered from Windows Ctrl+C selection flow"),
-        _ => None,
-    };
-
-    translate_text_and_show_popup_internal(app, trimmed.to_string(), None, notice).map(|_| ())
+    translate_captured_text_internal(app, text, source)
 }
 
 #[tauri::command]

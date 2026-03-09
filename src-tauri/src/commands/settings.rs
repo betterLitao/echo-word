@@ -11,6 +11,15 @@ use crate::db::{connection, migration};
 use crate::services::runtime;
 use crate::utils::{crypto, platform};
 
+const ENCRYPTED_STRING_SETTING_KEYS: &[&str] = &[
+    "youdao_app_key",
+    "youdao_app_secret",
+    "tencent_secret_id",
+    "tencent_secret_key",
+    "baidu_app_id",
+    "baidu_secret_key",
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppSettings {
@@ -98,6 +107,15 @@ fn parse_value<T: serde::de::DeserializeOwned>(raw: Option<&String>, default: T)
         .unwrap_or(default)
 }
 
+fn is_encrypted_string_setting(key: &str) -> bool {
+    ENCRYPTED_STRING_SETTING_KEYS.contains(&key)
+}
+
+fn parse_secret_value(app: &tauri::AppHandle, raw: Option<&String>, default: String) -> String {
+    let stored: String = parse_value(raw, default);
+    crypto::decrypt_secret(app, &stored)
+}
+
 pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSettings, String> {
     migration::run_migrations(app)?;
     let conn = connection::open_app_db(app)?;
@@ -136,6 +154,10 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         .autolaunch()
         .is_enabled()
         .unwrap_or(auto_start_stored);
+    let data_dir = connection::app_data_dir(app)
+        .ok()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|| parse_value(map.get("data_dir"), defaults.data_dir.clone()));
 
     Ok(AppSettings {
         shortcut_translate: parse_value(map.get("shortcut_translate"), defaults.shortcut_translate),
@@ -143,14 +165,30 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         translation_provider: parse_value(map.get("translation_provider"), defaults.translation_provider),
         fallback_chain: parse_value(map.get("fallback_chain"), defaults.fallback_chain),
         api_keys,
-        youdao_app_key: parse_value(map.get("youdao_app_key"), defaults.youdao_app_key),
-        youdao_app_secret: parse_value(map.get("youdao_app_secret"), defaults.youdao_app_secret),
-        tencent_secret_id: parse_value(map.get("tencent_secret_id"), defaults.tencent_secret_id),
-        tencent_secret_key: parse_value(map.get("tencent_secret_key"), defaults.tencent_secret_key),
-        baidu_app_id: parse_value(map.get("baidu_app_id"), defaults.baidu_app_id),
-        baidu_secret_key: parse_value(map.get("baidu_secret_key"), defaults.baidu_secret_key),
+        youdao_app_key: parse_secret_value(app, map.get("youdao_app_key"), defaults.youdao_app_key),
+        youdao_app_secret: parse_secret_value(
+            app,
+            map.get("youdao_app_secret"),
+            defaults.youdao_app_secret,
+        ),
+        tencent_secret_id: parse_secret_value(
+            app,
+            map.get("tencent_secret_id"),
+            defaults.tencent_secret_id,
+        ),
+        tencent_secret_key: parse_secret_value(
+            app,
+            map.get("tencent_secret_key"),
+            defaults.tencent_secret_key,
+        ),
+        baidu_app_id: parse_secret_value(app, map.get("baidu_app_id"), defaults.baidu_app_id),
+        baidu_secret_key: parse_secret_value(
+            app,
+            map.get("baidu_secret_key"),
+            defaults.baidu_secret_key,
+        ),
         theme: parse_value(map.get("theme"), defaults.theme),
-        data_dir: parse_value(map.get("data_dir"), defaults.data_dir),
+        data_dir,
         privacy_mode: parse_value(map.get("privacy_mode"), defaults.privacy_mode),
         auto_start,
         clipboard_listen: parse_value(map.get("clipboard_listen"), defaults.clipboard_listen),
@@ -236,6 +274,11 @@ pub(crate) fn update_setting_value(
 
     let stored_value = if key == "api_keys" {
         crypto::encrypt_api_key_map(app, value)
+    } else if is_encrypted_string_setting(key) {
+        let secret = value
+            .as_str()
+            .ok_or_else(|| format!("{key} must be a string"))?;
+        Value::String(crypto::encrypt_secret(app, secret))
     } else {
         value
     };

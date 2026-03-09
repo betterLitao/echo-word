@@ -1,12 +1,14 @@
 use std::sync::OnceLock;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crate::commands::settings::load_settings_from_db;
-use crate::commands::translate::request_selection_translate;
+use crate::commands::translate;
 use crate::utils::platform;
 
 static CLIPBOARD_WATCHER_STARTED: OnceLock<()> = OnceLock::new();
+const WATCHER_POLL_INTERVAL: Duration = Duration::from_millis(900);
+const FAILURE_RETRY_WINDOW: Duration = Duration::from_secs(10);
 
 fn should_translate_clipboard(text: &str) -> bool {
     let trimmed = text.trim();
@@ -25,40 +27,58 @@ pub fn start_clipboard_watcher(app: tauri::AppHandle) {
     let _ = CLIPBOARD_WATCHER_STARTED.set(());
     thread::spawn(move || {
         let mut last_seen = String::new();
+        let mut last_failed: Option<(String, Instant)> = None;
 
         loop {
             let settings = match load_settings_from_db(&app) {
                 Ok(settings) => settings,
                 Err(_) => {
-                    thread::sleep(Duration::from_millis(900));
+                    thread::sleep(WATCHER_POLL_INTERVAL);
                     continue;
                 }
             };
 
             if !settings.clipboard_listen {
-                thread::sleep(Duration::from_millis(900));
+                thread::sleep(WATCHER_POLL_INTERVAL);
                 continue;
             }
 
             let clipboard_text = match platform::read_clipboard_text() {
                 Ok(text) => text,
                 Err(_) => {
-                    thread::sleep(Duration::from_millis(900));
+                    thread::sleep(WATCHER_POLL_INTERVAL);
                     continue;
                 }
             };
 
-            let trimmed = clipboard_text.trim();
-            if !should_translate_clipboard(trimmed) || trimmed == last_seen {
-                thread::sleep(Duration::from_millis(900));
+            let trimmed = clipboard_text.trim().to_string();
+            if !should_translate_clipboard(&trimmed) || trimmed == last_seen {
+                thread::sleep(WATCHER_POLL_INTERVAL);
                 continue;
             }
 
-            // 监听模式只负责侦测“新文本”，真正的翻译与弹窗展示继续复用现有命令，
-            // 这样快捷键、HTTP API 和剪贴板监听三条入口可以共享完全相同的业务链路。
-            last_seen = trimmed.to_string();
-            let _ = request_selection_translate(app.clone());
-            thread::sleep(Duration::from_millis(900));
+            if let Some((failed_text, failed_at)) = &last_failed {
+                if &trimmed == failed_text && failed_at.elapsed() < FAILURE_RETRY_WINDOW {
+                    thread::sleep(WATCHER_POLL_INTERVAL);
+                    continue;
+                }
+            }
+
+            match translate::translate_captured_text_internal(
+                app.clone(),
+                clipboard_text,
+                "clipboard-watch",
+            ) {
+                Ok(()) => {
+                    last_seen = trimmed.clone();
+                    last_failed = None;
+                }
+                Err(_) => {
+                    last_failed = Some((trimmed, Instant::now()));
+                }
+            }
+
+            thread::sleep(WATCHER_POLL_INTERVAL);
         }
     });
 }

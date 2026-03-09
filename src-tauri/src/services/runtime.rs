@@ -78,12 +78,12 @@ pub fn handle_shortcut_event(app: &AppHandle, shortcut: &Shortcut, state: Shortc
 
         let app = app.clone();
         thread::spawn(move || {
-            let _ = translate::request_selection_translate(app);
+            let _ = translate::request_selection_translate_internal(app, "shortcut");
         });
         return;
     }
 
     if shortcut_matches(&settings.shortcut_input, shortcut) {
-        let _ = translate::request_input_translate(app.clone());
+        let _ = translate::request_input_translate_internal(app, "shortcut");
     }
 }
