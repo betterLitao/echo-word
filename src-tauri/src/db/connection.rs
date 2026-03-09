@@ -2,6 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use rusqlite::Connection;
+use tauri::Manager;
 
 pub fn app_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let path = app

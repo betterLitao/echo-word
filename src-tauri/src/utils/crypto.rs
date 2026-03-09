@@ -1,4 +1,5 @@
 use serde_json::Value;
+use tauri::Manager;
 
 fn derive_key(app: &tauri::AppHandle) -> Vec<u8> {
     let identifier = app.config().identifier.as_bytes();
@@ -6,7 +7,7 @@ fn derive_key(app: &tauri::AppHandle) -> Vec<u8> {
         .path()
         .app_data_dir()
         .ok()
-        .map(|path| path.to_string_lossy().as_bytes().to_vec())
+        .map(|path: std::path::PathBuf| path.to_string_lossy().as_bytes().to_vec())
         .unwrap_or_default();
 
     let mut seed = Vec::new();

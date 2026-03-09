@@ -24,7 +24,7 @@ struct OllamaStreamResponse {
     error: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct TranslationStreamPayload {
     source_text: String,
     provider: String,

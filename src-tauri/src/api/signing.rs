@@ -1,6 +1,6 @@
 use hmac::{Hmac, Mac};
 use md5::{Digest as Md5Digest, Md5};
-use sha2::{Digest as Sha256Digest, Sha256};
+use sha2::Sha256;
 
 pub fn to_lower_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{:02x}", byte)).collect()

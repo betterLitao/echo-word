@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::sync::OnceLock;
 use std::thread;
 
@@ -51,7 +50,7 @@ fn handle_translate(mut request: Request, app: &tauri::AppHandle) {
         }
     };
 
-    let payload = serde_json::from_str::<TranslateRequest>(&body)
+    let payload: Result<TranslateRequest, serde_json::Error> = serde_json::from_str::<TranslateRequest>(&body)
         .or_else(|_| Ok(TranslateRequest { text: body, mode: None }));
 
     let payload = match payload {
