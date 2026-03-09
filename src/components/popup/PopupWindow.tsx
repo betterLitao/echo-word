@@ -1,6 +1,6 @@
 import { Sparkle, Translate } from '@phosphor-icons/react'
 import { listen } from '@tauri-apps/api/event'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   addFavorite,
   getResultProviderLabel,
@@ -33,9 +33,109 @@ export function PopupWindow() {
   const [eventError, setEventError] = useState<string | null>(null)
   const [copyLabel, setCopyLabel] = useState('复制')
   const [actionHint, setActionHint] = useState<string | null>(null)
+  const actionBarRef = useRef<HTMLDivElement | null>(null)
 
   const canFavorite = useMemo(() => result?.mode === 'word', [result])
   const displayError = error ?? eventError
+
+  const getActionButtons = useCallback(() => {
+    if (!actionBarRef.current) {
+      return []
+    }
+
+    return Array.from(actionBarRef.current.querySelectorAll<HTMLButtonElement>('[data-popup-action]:not(:disabled)'))
+  }, [])
+
+  const focusActionAt = useCallback(
+    (index: number) => {
+      const buttons = getActionButtons()
+      if (buttons.length === 0) {
+        return
+      }
+
+      const normalizedIndex = ((index % buttons.length) + buttons.length) % buttons.length
+      buttons[normalizedIndex]?.focus()
+    },
+    [getActionButtons],
+  )
+
+  const focusNextAction = useCallback(
+    (direction: 1 | -1) => {
+      const buttons = getActionButtons()
+      if (buttons.length === 0) {
+        return
+      }
+
+      const currentIndex = buttons.findIndex((button) => button === document.activeElement)
+      const nextIndex = currentIndex === -1 ? (direction === 1 ? 0 : buttons.length - 1) : currentIndex + direction
+
+      focusActionAt(nextIndex)
+    },
+    [focusActionAt, getActionButtons],
+  )
+
+  const handleCopy = useCallback(() => {
+    if (!result) {
+      return
+    }
+
+    if (!navigator.clipboard?.writeText) {
+      setActionHint('当前环境不支持复制')
+      return
+    }
+
+    void navigator.clipboard
+      .writeText(result.translated_text)
+      .then(() => {
+        setCopyLabel('已复制')
+        setActionHint('译文已复制到剪贴板')
+      })
+      .catch((copyError) => {
+        setActionHint(copyError instanceof Error ? copyError.message : '复制失败')
+      })
+  }, [result])
+
+  const handleFavorite = useCallback(() => {
+    if (!result || result.mode !== 'word') {
+      return
+    }
+
+    void addFavorite({
+      word: result.source_text,
+      phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
+      chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
+      translation: result.translated_text,
+      source_text: result.source_text,
+    })
+      .then(() => {
+        setFavoriteLabel('已收藏')
+        setActionHint('已加入收藏列表')
+      })
+      .catch((favoriteError) => {
+        setActionHint(favoriteError instanceof Error ? favoriteError.message : '收藏失败')
+      })
+  }, [result])
+
+  const handleSpeak = useCallback(() => {
+    if (!result) {
+      return
+    }
+
+    try {
+      speakText(result.source_text)
+      setActionHint('正在朗读原文')
+    } catch (speakerError) {
+      setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
+    }
+  }, [result])
+
+  const handleModeChange = useCallback(
+    (nextMode: TranslationMode) => {
+      setMode(nextMode)
+      void translateCurrentMode(nextMode)
+    },
+    [setMode, translateCurrentMode],
+  )
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -73,10 +173,53 @@ export function PopupWindow() {
   }, [applyResult, clear, seedDemo])
 
   useEffect(() => {
+    if (loading || displayError || !result) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      focusActionAt(0)
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [canFavorite, displayError, focusActionAt, loading, result])
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const normalizedKey = event.key.toLowerCase()
+
       if (event.key === 'Escape') {
+        event.preventDefault()
         void hidePopup()
         return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && normalizedKey === 'c') {
+        if (result) {
+          event.preventDefault()
+          handleCopy()
+        }
+        return
+      }
+
+      if (event.key === 'Tab') {
+        const buttons = getActionButtons()
+        if (buttons.length > 0) {
+          event.preventDefault()
+          focusNextAction(event.shiftKey ? -1 : 1)
+        }
+        return
+      }
+
+      if (event.key === 'Enter') {
+        const buttons = getActionButtons()
+        const activeButton = buttons.find((button) => button === document.activeElement)
+
+        if (activeButton) {
+          event.preventDefault()
+          activeButton.click()
+          return
+        }
       }
 
       if (!result) {
@@ -84,77 +227,38 @@ export function PopupWindow() {
       }
 
       if (event.key === '1') {
-        setMode('word')
-        void translateCurrentMode('word')
+        event.preventDefault()
+        handleModeChange('word')
+        return
       }
 
       if (event.key === '2') {
-        setMode('sentence')
-        void translateCurrentMode('sentence')
+        event.preventDefault()
+        handleModeChange('sentence')
+        return
       }
 
-      if (event.key.toLowerCase() === 'c') {
-        void navigator.clipboard.writeText(result.translated_text).then(() => setCopyLabel('已复制'))
+      if (normalizedKey === 'c') {
+        event.preventDefault()
+        handleCopy()
+        return
       }
 
-      if (event.key.toLowerCase() === 'f' && canFavorite) {
-        void addFavorite({
-          word: result.source_text,
-          phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
-          chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
-          translation: result.translated_text,
-          source_text: result.source_text,
-        }).then(() => setFavoriteLabel('已收藏'))
+      if (normalizedKey === 'f' && canFavorite) {
+        event.preventDefault()
+        handleFavorite()
+        return
       }
 
-      if (event.key.toLowerCase() === 'r') {
-        try {
-          speakText(result.source_text)
-          setActionHint('正在朗读原文')
-        } catch (speakerError) {
-          setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
-        }
+      if (normalizedKey === 'r') {
+        event.preventDefault()
+        handleSpeak()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canFavorite, result, setMode, translateCurrentMode])
-
-  const handleModeChange = (nextMode: TranslationMode) => {
-    setMode(nextMode)
-    void translateCurrentMode(nextMode)
-  }
-
-  const handleFavorite = () => {
-    if (!result || result.mode !== 'word') {
-      return
-    }
-
-    void addFavorite({
-      word: result.source_text,
-      phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
-      chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
-      translation: result.translated_text,
-      source_text: result.source_text,
-    }).then(() => {
-      setFavoriteLabel('已收藏')
-      setActionHint('已加入收藏列表')
-    })
-  }
-
-  const handleSpeak = () => {
-    if (!result) {
-      return
-    }
-
-    try {
-      speakText(result.source_text)
-      setActionHint('正在朗读原文')
-    } catch (speakerError) {
-      setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
-    }
-  }
+  }, [canFavorite, focusNextAction, getActionButtons, handleCopy, handleFavorite, handleModeChange, handleSpeak, result])
 
   return (
     <div
@@ -191,31 +295,33 @@ export function PopupWindow() {
             <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/[0.04]" />
           </div>
         ) : null}
-        {!loading && displayError ? <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{displayError}</div> : null}
-        {!loading && !displayError && result ? <div className="relative">{result.mode === 'word' ? <WordResult data={result} /> : <SentenceResult data={result} />}</div> : null}
-        {!loading && !displayError && !result ? <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果…</div> : null}
+
+        {!loading && displayError ? (
+          <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{displayError}</div>
+        ) : null}
+
+        {!loading && !displayError && result ? (
+          <div className="relative">{result.mode === 'word' ? <WordResult data={result} /> : <SentenceResult data={result} />}</div>
+        ) : null}
+
+        {!loading && !displayError && !result ? (
+          <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果...</div>
+        ) : null}
 
         {result && (statusNote || actionHint) ? (
           <div className="relative mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-3 text-xs leading-6 text-slate-400">
-            {getResultProviderLabel(result)} 路 {actionHint ?? statusNote}
+            {getResultProviderLabel(result)} · {actionHint ?? statusNote}
           </div>
         ) : null}
 
         <div className="relative mt-5 border-t border-white/10 pt-4">
           <ActionBar
+            containerRef={actionBarRef}
             copyDisabled={!result}
             copyLabel={copyLabel}
             favoriteLabel={favoriteLabel}
             showFavorite={canFavorite}
-            onCopy={() => {
-              if (!result) {
-                return
-              }
-              void navigator.clipboard.writeText(result.translated_text).then(() => {
-                setCopyLabel('已复制')
-                setActionHint('译文已复制到剪贴板')
-              })
-            }}
+            onCopy={handleCopy}
             onFavorite={handleFavorite}
             onSpeak={handleSpeak}
             onClose={() => void hidePopup()}

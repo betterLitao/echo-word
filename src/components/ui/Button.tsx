@@ -51,6 +51,7 @@ export function Button({
       className={cx(
         'group inline-flex transform-gpu items-center justify-center gap-2 rounded-full font-medium tracking-[0.01em]',
         'transition-[background-color,border-color,color,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+        'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300/12 focus-visible:ring-offset-0',
         'active:scale-[0.98] active:translate-y-px disabled:pointer-events-none disabled:opacity-50',
         variantClassName[variant],
         sizeClassName[size],

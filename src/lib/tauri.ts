@@ -52,6 +52,8 @@ export interface HistoryItem {
   created_at: string
 }
 
+export type HistoryDateRange = 'all' | 'today' | '7d' | '30d'
+
 export interface Settings {
   shortcut_translate: string
   shortcut_input: string
@@ -332,8 +334,17 @@ export function getFavorites(query = '', page = 1, pageSize = 20) {
   return safeInvoke<FavoriteItem[]>('get_favorites', { query, page, pageSize }, [])
 }
 
-export function getHistory(query = '', page = 1, pageSize = 20) {
-  return safeInvoke<HistoryItem[]>('get_history', { query, page, pageSize }, [])
+export function getHistory(
+  query = '',
+  dateRangeOrPage: HistoryDateRange | number = 'all',
+  pageOrPageSize = 1,
+  maybePageSize = 20,
+) {
+  const dateRange = typeof dateRangeOrPage === 'string' ? dateRangeOrPage : 'all'
+  const page = typeof dateRangeOrPage === 'number' ? dateRangeOrPage : pageOrPageSize
+  const pageSize = typeof dateRangeOrPage === 'number' ? pageOrPageSize : maybePageSize
+
+  return safeInvoke<HistoryItem[]>('get_history', { query, dateRange, page, pageSize }, [])
 }
 
 // 主窗口与弹窗窗口各自维护状态，这里通过 app 级事件广播翻译结果，
