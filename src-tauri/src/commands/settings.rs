@@ -5,6 +5,7 @@ use serde_json::Value;
 use tauri::Manager;
 use tauri_plugin_global_shortcut::Shortcut;
 
+use crate::commands::translate::show_popup_near_cursor;
 use crate::db::{connection, migration};
 use crate::services::runtime;
 use crate::utils::{crypto, platform};
@@ -168,12 +169,7 @@ pub fn open_accessibility_settings() -> Result<(), String> {
 
 #[tauri::command]
 pub fn show_popup(app: tauri::AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("popup")
-        .ok_or_else(|| "popup window not found".to_string())?;
-    window.show().map_err(|error| error.to_string())?;
-    window.set_focus().map_err(|error| error.to_string())?;
-    Ok(())
+    show_popup_near_cursor(&app)
 }
 
 #[tauri::command]

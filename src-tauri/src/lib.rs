@@ -82,6 +82,7 @@ pub fn run() {
 
             let settings = commands::settings::load_settings_from_db(&app.handle())?;
             http_server::start_http_server(settings.http_api_port, app.handle().clone());
+            services::selection::start_selection_watcher(app.handle().clone());
             services::clipboard::start_clipboard_watcher(app.handle().clone());
             Ok(())
         })

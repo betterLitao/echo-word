@@ -112,6 +112,12 @@ fn store_history(
     mode: TranslationMode,
     provider: &str,
 ) -> Result<(), String> {
+    if let Ok(settings) = load_settings_from_db(app) {
+        if settings.privacy_mode {
+            return Ok(());
+        }
+    }
+
     let conn = connection::open_app_db(app)?;
     let mode = match mode {
         TranslationMode::Word => "word",

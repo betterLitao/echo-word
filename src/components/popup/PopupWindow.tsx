@@ -26,13 +26,16 @@ export function PopupWindow() {
   const statusNote = useTranslationStore((state) => state.statusNote)
   const applyResult = useTranslationStore((state) => state.applyResult)
   const seedDemo = useTranslationStore((state) => state.seedDemo)
+  const clear = useTranslationStore((state) => state.clear)
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
   const [favoriteLabel, setFavoriteLabel] = useState('收藏')
+  const [eventError, setEventError] = useState<string | null>(null)
   const [copyLabel, setCopyLabel] = useState('复制')
   const [actionHint, setActionHint] = useState<string | null>(null)
 
   const canFavorite = useMemo(() => result?.mode === 'word', [result])
+  const displayError = error ?? eventError
 
   useEffect(() => {
     if (!isTauriRuntime()) {
@@ -46,6 +49,7 @@ export function PopupWindow() {
     void listen<TranslationResult>('translation-result', (event) => {
       setFavoriteLabel('收藏')
       setCopyLabel('复制')
+      setEventError(null)
       setActionHint(null)
       applyResult(event.payload)
     }).then((fn) => {
@@ -53,7 +57,11 @@ export function PopupWindow() {
     })
 
     void listen<{ message: string }>('translation-error', (event) => {
-      setActionHint(event.payload.message)
+      if (event.payload.message) {
+        clear()
+        setActionHint(null)
+        setEventError(event.payload.message)
+      }
     }).then((fn) => {
       unlistenError = fn
     })
@@ -62,7 +70,7 @@ export function PopupWindow() {
       unlistenResult?.()
       unlistenError?.()
     }
-  }, [applyResult, seedDemo])
+  }, [applyResult, clear, seedDemo])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -183,13 +191,13 @@ export function PopupWindow() {
             <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/[0.04]" />
           </div>
         ) : null}
-        {!loading && error ? <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{error}</div> : null}
-        {!loading && !error && result ? <div className="relative">{result.mode === 'word' ? <WordResult data={result} /> : <SentenceResult data={result} />}</div> : null}
-        {!loading && !error && !result ? <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果…</div> : null}
+        {!loading && displayError ? <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{displayError}</div> : null}
+        {!loading && !displayError && result ? <div className="relative">{result.mode === 'word' ? <WordResult data={result} /> : <SentenceResult data={result} />}</div> : null}
+        {!loading && !displayError && !result ? <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果…</div> : null}
 
         {result && (statusNote || actionHint) ? (
           <div className="relative mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-3 text-xs leading-6 text-slate-400">
-            {getResultProviderLabel(result)} · {actionHint ?? statusNote}
+            {getResultProviderLabel(result)} 路 {actionHint ?? statusNote}
           </div>
         ) : null}
 
