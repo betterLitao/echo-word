@@ -82,29 +82,18 @@ function AppFrame() {
       <BackgroundDecor />
       {!isOnboarding ? (
         <>
-          <div className="relative mx-auto max-w-[1400px] px-4 py-4 sm:px-6 lg:px-8">
-            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-              <aside className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.72))] p-6 shadow-[0_32px_80px_-42px_rgba(2,6,23,0.92)] backdrop-blur-2xl lg:sticky lg:top-6 lg:h-[calc(100dvh-3rem)]">
+          <div className="relative mx-auto max-w-[1200px] px-3 py-3 sm:px-4 lg:px-6">
+            <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+              <aside className="relative overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.72))] p-4 shadow-[0_20px_50px_-20px_rgba(2,6,23,0.92)] backdrop-blur-2xl lg:sticky lg:top-3 lg:h-[calc(100dvh-1.5rem)]">
                 <div className="relative flex h-full flex-col">
-                  <div>
-                    <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-xs uppercase tracking-[0.24em] text-slate-200">
-                      <Waveform size={16} weight="duotone" />
+                  <div className="mb-6">
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium tracking-wide text-slate-200">
+                      <Waveform size={14} weight="duotone" />
                       EchoWord
                     </div>
-                    <h1 className="mt-6 text-[2.15rem] font-semibold tracking-tight text-white md:text-[2.5rem] md:leading-[1.02]">
-                      轻量级划词翻译工具
-                    </h1>
-                    <p className="mt-4 max-w-[28ch] text-sm leading-7 text-slate-400">
-                      支持离线单词查询、在线句子翻译、音标中文谐音标注、收藏与历史记录。
-                    </p>
                   </div>
 
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    <StatusPill icon={<Lightning size={14} weight="fill" />} label="快速翻译" tone="accent" />
-                    <StatusPill icon={<GridFour size={14} weight="duotone" />} label="多引擎支持" />
-                  </div>
-
-                  <nav className="mt-8 space-y-2">
+                  <nav className="space-y-1.5">
                     {navItems.map((item) => {
                       const Icon = item.icon
                       return (
@@ -112,63 +101,38 @@ function AppFrame() {
                           key={item.to}
                           className={({ isActive }) =>
                             isActive
-                              ? 'flex items-center justify-between rounded-[1.4rem] border border-emerald-300/18 bg-emerald-300/10 px-4 py-4 text-sm text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-                              : 'flex items-center justify-between rounded-[1.4rem] border border-transparent px-4 py-4 text-sm text-slate-300 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-white/10 hover:bg-white/[0.05] hover:text-white'
+                              ? 'flex items-center gap-2.5 rounded-lg border border-emerald-300/18 bg-emerald-300/10 px-3 py-2.5 text-sm font-medium text-emerald-100'
+                              : 'flex items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-white'
                           }
                           to={item.to}
                         >
-                          <span className="flex items-center gap-3">
-                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-slate-100">
-                              <Icon size={18} weight="duotone" />
-                            </span>
-                            <span>{item.label}</span>
-                          </span>
-                          <span className="text-xs uppercase tracking-[0.24em] text-slate-500">0{navItems.indexOf(item) + 1}</span>
+                          <Icon size={16} weight="duotone" />
+                          <span>{item.label}</span>
                         </NavLink>
                       )
                     })}
                   </nav>
 
-                  <div className="mt-auto rounded-[1.6rem] border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">快捷操作</p>
-                    <p className="mt-3 text-sm leading-7 text-slate-300">
-                      使用快捷键 Ctrl+Shift+T 快速翻译选中文本，Ctrl+Shift+I 打开输入翻译窗口。
-                    </p>
+                  <div className="mt-auto pt-4">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs text-slate-500">快捷键</p>
+                      <p className="mt-2 text-xs leading-5 text-slate-400">
+                        Ctrl+Shift+T 翻译<br/>
+                        Ctrl+Shift+I 输入
+                      </p>
+                    </div>
                   </div>
                 </div>
               </aside>
 
-              <div className="space-y-6">
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_300px]">
-                  <section className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(15,23,42,0.68))] p-6 shadow-[0_32px_80px_-42px_rgba(2,6,23,0.88)] backdrop-blur-2xl md:p-7">
-                    <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/86">工作台</p>
-                    <h2 className="mt-4 max-w-4xl text-3xl font-semibold tracking-tight text-white md:text-[2.7rem] md:leading-[1.02]">
-                      快速翻译，随时查询
-                    </h2>
-                    <p className="mt-4 max-w-[62ch] text-sm leading-7 text-slate-400">
-                      支持离线词典、在线翻译、音标谐音、收藏管理和历史记录，让翻译更高效。
-                    </p>
-                  </section>
-
-                  <section className="rounded-[2rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl">
-                    <p className="text-xs uppercase tracking-[0.28em] text-slate-500">功能状态</p>
-                    <div className="mt-4 space-y-3">
-                      <StatusPill icon={<Lightning size={14} weight="fill" />} label="翻译引擎就绪" tone="accent" />
-                      <StatusPill icon={<HeartStraight size={14} weight="duotone" />} label="收藏与历史" />
-                      <StatusPill icon={<ClockCounterClockwise size={14} weight="duotone" />} label="快捷键支持" />
-                    </div>
-                  </section>
-                </div>
-
-                <main className="relative rounded-[2rem] border border-white/10 bg-slate-950/62 p-4 shadow-[0_32px_80px_-42px_rgba(2,6,23,0.92)] backdrop-blur-2xl md:p-6">
-                  <Routes>
-                    <Route path="/settings/*" element={<SettingsPage />} />
-                    <Route path="/favorites" element={<FavoritesPage />} />
-                    <Route path="/history" element={<HistoryPage />} />
-                    <Route path="*" element={<Navigate to="/settings" replace />} />
-                  </Routes>
-                </main>
-              </div>
+              <main className="relative rounded-xl border border-white/10 bg-slate-950/62 p-4 shadow-[0_20px_50px_-20px_rgba(2,6,23,0.92)] backdrop-blur-2xl md:p-5">
+                <Routes>
+                  <Route path="/settings/*" element={<SettingsPage />} />
+                  <Route path="/favorites" element={<FavoritesPage />} />
+                  <Route path="/history" element={<HistoryPage />} />
+                  <Route path="*" element={<Navigate to="/settings" replace />} />
+                </Routes>
+              </main>
             </div>
           </div>
           <InputTranslateDialog />
