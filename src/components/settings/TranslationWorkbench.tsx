@@ -1,10 +1,11 @@
 import { Copy, HeartStraight, SpeakerHigh, Sparkle, Translate, Waveform } from '@phosphor-icons/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import { addFavorite, getResultProviderLabel, pushPopupResult } from '../../lib/tauri'
 import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
 import { ModeSwitch } from '../translation/ModeSwitch'
+import { SelectionFloatingButton } from '../translation/SelectionFloatingButton'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Field, fieldControlClassName } from '../ui/Field'
@@ -51,6 +52,29 @@ export function TranslationWorkbench() {
       ? favoriteLabelState.value
       : '收藏单词'
 
+  // 启动时读取剪贴板
+  useEffect(() => {
+    const loadClipboard = async () => {
+      try {
+        if (navigator.clipboard?.readText) {
+          const text = await navigator.clipboard.readText()
+          const trimmed = text.trim()
+          // 只填充英文文本，且长度合理（2-500 字符）
+          if (trimmed.length >= 2 && trimmed.length <= 500 && /[a-zA-Z]/.test(trimmed)) {
+            setInput(trimmed)
+          }
+        }
+      } catch {
+        // 剪贴板读取失败（权限或其他原因），静默忽略
+      }
+    }
+
+    // 只在输入框为空时尝试读取剪贴板
+    if (!input || input === 'This feature keeps your focus inside the editor.') {
+      void loadClipboard()
+    }
+  }, [])
+
   const favoritePayload = useMemo(() => {
     if (!result || result.mode !== 'word') {
       return null
@@ -65,11 +89,18 @@ export function TranslationWorkbench() {
     }
   }, [result])
 
+  const handleSelectionTranslate = (text: string) => {
+    setInput(text)
+    void translate(text)
+  }
+
   return (
-    <SectionCard
-      title="翻译"
-      description="输入英文单词或句子进行翻译"
-    >
+    <>
+      <SelectionFloatingButton onTranslate={handleSelectionTranslate} />
+      <SectionCard
+        title="翻译"
+        description="输入英文单词或句子进行翻译"
+      >
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -202,5 +233,6 @@ export function TranslationWorkbench() {
         </div>
       </div>
     </SectionCard>
+    </>
   )
 }
