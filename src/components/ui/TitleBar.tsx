@@ -13,10 +13,7 @@ export function TitleBar() {
   }
 
   return (
-    <div
-      data-tauri-drag-region
-      className="fixed left-0 right-0 top-0 z-50 flex h-8 select-none items-center justify-between bg-slate-950/80 backdrop-blur-xl"
-    >
+    <div className="fixed left-0 right-0 top-0 z-50 flex h-8 select-none items-center justify-between bg-slate-950/80 backdrop-blur-xl">
       <div data-tauri-drag-region className="flex-1 pl-3 text-xs font-medium text-slate-400">
         EchoWord
       </div>

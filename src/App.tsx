@@ -89,7 +89,10 @@ function AppFrame() {
         <>
           <div className="relative mx-auto max-w-[1200px] px-3 py-3 sm:px-4 lg:px-6" style={{ paddingTop: isTauriRuntime() ? '2.5rem' : '0.75rem' }}>
             <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
-              <aside className="relative overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.72))] p-4 shadow-[0_20px_50px_-20px_rgba(2,6,23,0.92)] backdrop-blur-2xl lg:sticky lg:top-3 lg:h-[calc(100dvh-1.5rem)]">
+              <aside
+                className="relative overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.72))] p-4 shadow-[0_20px_50px_-20px_rgba(2,6,23,0.92)] backdrop-blur-2xl lg:sticky lg:h-[calc(100dvh-1.5rem)]"
+                style={{ top: isTauriRuntime() ? '2.5rem' : '0.75rem' }}
+              >
                 <div className="relative flex h-full flex-col">
                   <div className="mb-6">
                     <div className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium tracking-wide text-slate-200">

@@ -70,9 +70,9 @@ export function HistoryPage() {
   return (
     <div className="space-y-6">
       <PageHero
-        description="历史记录现在不仅能回看，还能按关键词和时间窗口快速收窄范围。"
-        eyebrow="History"
-        title="把已经翻过的内容拉回工作台，而不是让它死在数据库里。"
+        description="查看翻译历史，支持按关键词和时间范围快速筛选。"
+        eyebrow="历史"
+        title="翻译历史记录"
         meta={<StatusPill icon={<ClockCounterClockwise size={14} weight="duotone" />} label={`${items.length} 条结果`} tone="accent" />}
       />
 

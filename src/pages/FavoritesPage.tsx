@@ -109,9 +109,9 @@ export function FavoritesPage() {
   return (
     <div className="space-y-6">
       <PageHero
-        description="收藏不该只是静态结果堆栈。现在它支持搜索、回放、删除和多格式导出，才算像个能用的工作面板。"
-        eyebrow="Favorites"
-        title="把真正值得反复看的单词，留在一份可检索、可回放、可导出的清单里。"
+        description="管理你收藏的单词，支持搜索、回放、删除和多格式导出。"
+        eyebrow="收藏"
+        title="单词收藏夹"
         meta={<StatusPill icon={<HeartStraight size={14} weight="fill" />} label={`${items.length} 条结果`} tone="accent" />}
       />
 
