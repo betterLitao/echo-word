@@ -15,8 +15,8 @@
         "label": "main",
         "title": "EchoWord",
         "url": "/",
-        "width": 960,
-        "height": 680,
+        "width": 1200,
+        "height": 720,
         "visible": false,
         "resizable": true,
         "decorations": false

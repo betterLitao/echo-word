@@ -67,10 +67,10 @@ export function TranslationWorkbench() {
 
   return (
     <SectionCard
-      title="输入翻译工作台"
-      description="这里直接验证单词、句子、流式输出、多引擎对照和 popup 联动。"
+      title="翻译"
+      description="输入英文单词或句子进行翻译"
     >
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <ModeSwitch value={mode} onChange={setMode} />
