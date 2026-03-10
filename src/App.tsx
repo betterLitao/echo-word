@@ -92,16 +92,16 @@ function AppFrame() {
                       EchoWord
                     </div>
                     <h1 className="mt-6 text-[2.15rem] font-semibold tracking-tight text-white md:text-[2.5rem] md:leading-[1.02]">
-                      左侧做导航，右侧收纳翻译、设置和系统入口。
+                      轻量级划词翻译工具
                     </h1>
                     <p className="mt-4 max-w-[28ch] text-sm leading-7 text-slate-400">
-                      现在已经不止是离线单词面板：句子翻译、快捷键、历史列表、输入弹层和 HTTP 入口都共享同一条翻译主链路。
+                      支持离线单词查询、在线句子翻译、音标中文谐音标注、收藏与历史记录。
                     </p>
                   </div>
 
                   <div className="mt-6 flex flex-wrap gap-2">
-                    <StatusPill icon={<Lightning size={14} weight="fill" />} label="Cycle 06" tone="accent" />
-                    <StatusPill icon={<GridFour size={14} weight="duotone" />} label="多链路联动" />
+                    <StatusPill icon={<Lightning size={14} weight="fill" />} label="快速翻译" tone="accent" />
+                    <StatusPill icon={<GridFour size={14} weight="duotone" />} label="多引擎支持" />
                   </div>
 
                   <nav className="mt-8 space-y-2">
@@ -130,9 +130,9 @@ function AppFrame() {
                   </nav>
 
                   <div className="mt-auto rounded-[1.6rem] border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">工作流</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">快捷操作</p>
                     <p className="mt-3 text-sm leading-7 text-slate-300">
-                      当前已串起单词、句子、快捷键、输入弹层、收藏与历史。后续新增 Provider 或系统能力时，会继续复用这套主链路。
+                      使用快捷键 Ctrl+Shift+T 快速翻译选中文本，Ctrl+Shift+I 打开输入翻译窗口。
                     </p>
                   </div>
                 </div>
@@ -141,21 +141,21 @@ function AppFrame() {
               <div className="space-y-6">
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_300px]">
                   <section className="rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(15,23,42,0.68))] p-6 shadow-[0_32px_80px_-42px_rgba(2,6,23,0.88)] backdrop-blur-2xl md:p-7">
-                    <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/86">Workbench</p>
+                    <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/86">工作台</p>
                     <h2 className="mt-4 max-w-4xl text-3xl font-semibold tracking-tight text-white md:text-[2.7rem] md:leading-[1.02]">
-                      让翻译主链路先稳定，再把触发方式、对照视图和历史沉淀逐步叠上去。
+                      快速翻译，随时查询
                     </h2>
                     <p className="mt-4 max-w-[62ch] text-sm leading-7 text-slate-400">
-                      页面结构保持左偏与不对称留白，重点内容集中在主舞台区域；信息密度控制在日常应用级别，而不是堆满指标卡片。
+                      支持离线词典、在线翻译、音标谐音、收藏管理和历史记录，让翻译更高效。
                     </p>
                   </section>
 
                   <section className="rounded-[2rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl">
-                    <p className="text-xs uppercase tracking-[0.28em] text-slate-500">状态</p>
+                    <p className="text-xs uppercase tracking-[0.28em] text-slate-500">功能状态</p>
                     <div className="mt-4 space-y-3">
-                      <StatusPill icon={<Lightning size={14} weight="fill" />} label="句子翻译可用" tone="accent" />
-                      <StatusPill icon={<HeartStraight size={14} weight="duotone" />} label="收藏与历史已接库" />
-                      <StatusPill icon={<ClockCounterClockwise size={14} weight="duotone" />} label="输入弹层与快捷键已接线" />
+                      <StatusPill icon={<Lightning size={14} weight="fill" />} label="翻译引擎就绪" tone="accent" />
+                      <StatusPill icon={<HeartStraight size={14} weight="duotone" />} label="收藏与历史" />
+                      <StatusPill icon={<ClockCounterClockwise size={14} weight="duotone" />} label="快捷键支持" />
                     </div>
                   </section>
                 </div>

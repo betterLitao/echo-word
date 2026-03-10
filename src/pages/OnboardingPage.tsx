@@ -32,17 +32,17 @@ export function OnboardingPage() {
       case 3:
         return isWindows ? (
           <div className="space-y-5">
-            <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">Ready</p>
-            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">基础引导已完成，接下来进入主工作台。</h2>
-            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在你已经具备离线单词翻译、句子翻译、收藏、历史回放、系统快捷键与本地 HTTP API 的完整基础能力。后续可继续按需开启剪贴板监听和多引擎对照。</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">完成</p>
+            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">设置完成，开始使用</h2>
+            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在可以使用快捷键 Ctrl+Shift+T 翻译选中文本，或使用 Ctrl+Shift+I 打开输入翻译窗口。</p>
           </div>
         ) : <ShortcutStep />
       default:
         return (
           <div className="space-y-5">
-            <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">Ready</p>
-            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">基础引导已完成，接下来进入主工作台。</h2>
-            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在你已经具备离线单词翻译、句子翻译、收藏、历史回放、系统快捷键与本地 HTTP API 的完整基础能力。后续可继续按需开启剪贴板监听和多引擎对照。</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-emerald-300/88">完成</p>
+            <h2 className="text-3xl font-semibold tracking-tight text-white md:text-[2.3rem] md:leading-[1.02]">设置完成，开始使用</h2>
+            <p className="max-w-[58ch] text-sm leading-8 text-slate-400">现在可以使用快捷键 Ctrl+Shift+T 翻译选中文本，或使用 Ctrl+Shift+I 打开输入翻译窗口。</p>
           </div>
         )
     }
@@ -64,27 +64,27 @@ export function OnboardingPage() {
               <StatusPill icon={<Lightning size={14} weight="fill" />} label="Onboarding" tone="accent" />
               <StatusPill icon={<Translate size={14} weight="duotone" />} label="英译中" />
             </div>
-            <h1 className="mt-8 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl md:leading-[0.98]">
-              先把关键入口整理清楚，再让翻译体验自然地接管日常工作流。
+            <h1 className=”mt-8 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl md:leading-[0.98]”>
+              轻量级划词翻译工具
             </h1>
-            <p className="mt-6 max-w-[62ch] text-base leading-8 text-slate-300">
-              这份引导页不走居中大按钮套路，而是用左右分区来承接“产品说明”和“操作步骤”。左侧解释为什么存在，右侧负责动作推进。
+            <p className=”mt-6 max-w-[62ch] text-base leading-8 text-slate-300”>
+              支持离线词典、在线翻译、音标谐音标注、收藏管理和历史记录，让翻译更高效便捷。
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-[1.75rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">你会获得</p>
-              <div className="mt-4 space-y-4 text-sm leading-7 text-slate-300">
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>更干净的权限与首次启动流程</span></div>
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>离线单词、句子翻译、收藏与历史回放闭环</span></div>
-                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>系统快捷键、本地 HTTP API 与剪贴板监听入口</span></div>
+          <div className=”grid gap-4 md:grid-cols-[1.2fr_0.8fr]”>
+            <div className=”rounded-[1.75rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]”>
+              <p className=”text-xs uppercase tracking-[0.24em] text-slate-500”>核心功能</p>
+              <div className=”mt-4 space-y-4 text-sm leading-7 text-slate-300”>
+                <div className=”flex items-start gap-3”><CheckCircle size={18} weight=”fill” className=”mt-1 text-emerald-300” /><span>离线词典与在线翻译</span></div>
+                <div className=”flex items-start gap-3”><CheckCircle size={18} weight=”fill” className=”mt-1 text-emerald-300” /><span>音标中文谐音标注</span></div>
+                <div className=”flex items-start gap-3”><CheckCircle size={18} weight=”fill” className=”mt-1 text-emerald-300” /><span>收藏管理与历史记录</span></div>
               </div>
             </div>
-            <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">当前阶段</p>
-              <p className="mt-4 text-2xl font-semibold tracking-tight text-white">Cycle 05</p>
-              <p className="mt-3 text-sm leading-7 text-slate-400">P0 主链路已收口，P1 高频体验正在补齐到“长期可开着用”的状态。</p>
+            <div className=”rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]”>
+              <p className=”text-xs uppercase tracking-[0.24em] text-slate-500”>版本信息</p>
+              <p className=”mt-4 text-2xl font-semibold tracking-tight text-white”>v0.1.0</p>
+              <p className=”mt-3 text-sm leading-7 text-slate-400”>基础功能已完成，支持快捷键、弹窗翻译和本地 HTTP API。</p>
             </div>
           </div>
         </section>

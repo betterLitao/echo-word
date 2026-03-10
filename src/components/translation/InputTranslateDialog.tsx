@@ -84,11 +84,11 @@ export function InputTranslateDialog() {
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap gap-2">
-              <StatusPill icon={<Lightning size={14} weight="fill" />} label="Input Translate" tone="accent" />
-              {resolvedMode ? <StatusPill icon={<Translate size={14} weight="duotone" />} label={`实际 ${resolvedMode}`} /> : null}
+              <StatusPill icon={<Lightning size={14} weight="fill" />} label="输入翻译" tone="accent" />
+              {resolvedMode ? <StatusPill icon={<Translate size={14} weight="duotone" />} label={resolvedMode === 'word' ? '单词' : '句子'} /> : null}
             </div>
-            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-[2.4rem] md:leading-[1.02]">输入翻译已接到系统快捷键与 HTTP 入口。</h2>
-            <p className="mt-4 max-w-[60ch] text-sm leading-8 text-slate-400">保持左侧主内容、右侧动作反馈的节奏。输入停止 500ms 后会自动尝试翻译，也可以手动确认后直接把结果推送到独立弹窗。</p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-[2.4rem] md:leading-[1.02]">快速输入翻译</h2>
+            <p className="mt-4 max-w-[60ch] text-sm leading-8 text-slate-400">输入英文文本后自动翻译，也可以手动确认后发送到弹窗查看。</p>
           </div>
           <Button icon={<X size={16} weight="duotone" />} size="sm" variant="ghost" onClick={() => setOpen(false)}>关闭</Button>
         </div>
@@ -102,11 +102,11 @@ export function InputTranslateDialog() {
               </button>
             </div>
 
-            <Field label="输入英文文本" description="适合临时查询完整句子、变量名和没有选区事件的场景。" errorText={error ?? undefined}>
+            <Field label="输入英文文本" description="支持单词和句子翻译，输入后自动识别。" errorText={error ?? undefined}>
               <textarea
                 ref={textareaRef}
                 className={`${fieldControlClassName} min-h-40 resize-none`}
-                placeholder="例如 We need a smoother input translation workflow."
+                placeholder="例如 hello 或 We need a smoother workflow."
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
               />
@@ -134,14 +134,14 @@ export function InputTranslateDialog() {
           </div>
 
           <div className="rounded-[1.75rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">状态</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">翻译状态</p>
             <div className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-              <p>{providerHint ?? '等待本次翻译的 Provider'}</p>
-              <p>{statusNote ?? '输入弹层已连接快捷键和 HTTP API。'}</p>
+              <p>{providerHint ?? '等待翻译'}</p>
+              <p>{statusNote ?? '输入停止 500ms 后自动翻译'}</p>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
-              <StatusPill icon={<Translate size={14} weight="duotone" />} label={`请求 ${mode}`} tone="accent" />
-              {result?.alternatives?.length ? <StatusPill icon={<Sparkle size={14} weight="duotone" />} label={`对照 ${result.alternatives.length + 1} 引擎`} /> : null}
+              <StatusPill icon={<Translate size={14} weight="duotone" />} label={mode === 'auto' ? '自动识别' : mode === 'word' ? '单词模式' : '句子模式'} tone="accent" />
+              {result?.alternatives?.length ? <StatusPill icon={<Sparkle size={14} weight="duotone" />} label={`${result.alternatives.length + 1} 个引擎`} /> : null}
             </div>
           </div>
         </div>
