@@ -115,6 +115,7 @@ export function TranslationWorkbench() {
               icon={<Copy size={16} weight="duotone" />}
               variant="secondary"
               disabled={!result}
+              className="min-w-[100px]"
               onClick={() =>
                 result
                   ? void navigator.clipboard
@@ -145,6 +146,7 @@ export function TranslationWorkbench() {
               <Button
                 icon={<HeartStraight size={16} weight="duotone" />}
                 variant="ghost"
+                className="min-w-[100px]"
                 onClick={() =>
                   void addFavorite(favoritePayload).then((notice) => {
                     setFavoriteLabelState({ scope: actionScope, value: '已收藏' })

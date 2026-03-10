@@ -28,5 +28,4 @@ Thumbs.db
 npm-debug.log*
 
 # Dict data (large files)
-*.db
-!src-tauri/resources/ecdict-core.db
+src-tauri/resources/*.db
