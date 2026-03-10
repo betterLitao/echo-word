@@ -35,7 +35,37 @@ export function PopupWindow() {
     scope: '',
     value: null,
   })
+  const [isHovering, setIsHovering] = useState(false)
+  const [opacity, setOpacity] = useState(1)
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
   const actionBarRef = useRef<HTMLDivElement | null>(null)
+
+  // 弹窗淡出逻辑
+  useEffect(() => {
+    if (!isHovering && result) {
+      // 鼠标移出后延迟 2 秒开始淡出
+      hideTimerRef.current = setTimeout(() => {
+        setOpacity(0)
+        // 淡出动画完成后隐藏弹窗
+        setTimeout(() => {
+          void hidePopup()
+        }, 300)
+      }, 2000)
+    } else {
+      // 鼠标移回或无结果时，取消淡出并恢复显示
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+        hideTimerRef.current = null
+      }
+      setOpacity(1)
+    }
+
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+      }
+    }
+  }, [isHovering, result])
 
   const canFavorite = useMemo(() => result?.mode === 'word', [result])
   const favoriteLabel = favoriteLabelState.scope === actionScope && favoriteLabelState.value ? favoriteLabelState.value : '收藏'
@@ -271,8 +301,10 @@ export function PopupWindow() {
       }}
     >
       <div
-        className="relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl"
-        onMouseLeave={() => void hidePopup()}
+        className="relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl transition-opacity duration-300"
+        style={{ opacity }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
         <div className="pointer-events-none absolute inset-px rounded-[calc(1rem-1px)] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
 
