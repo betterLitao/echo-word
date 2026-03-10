@@ -64,27 +64,27 @@ export function OnboardingPage() {
               <StatusPill icon={<Lightning size={14} weight="fill" />} label="Onboarding" tone="accent" />
               <StatusPill icon={<Translate size={14} weight="duotone" />} label="英译中" />
             </div>
-            <h1 className=”mt-8 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl md:leading-[0.98]”>
+            <h1 className="mt-8 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-6xl md:leading-[0.98]">
               轻量级划词翻译工具
             </h1>
-            <p className=”mt-6 max-w-[62ch] text-base leading-8 text-slate-300”>
+            <p className="mt-6 max-w-[62ch] text-base leading-8 text-slate-300">
               支持离线词典、在线翻译、音标谐音标注、收藏管理和历史记录，让翻译更高效便捷。
             </p>
           </div>
 
-          <div className=”grid gap-4 md:grid-cols-[1.2fr_0.8fr]”>
-            <div className=”rounded-[1.75rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]”>
-              <p className=”text-xs uppercase tracking-[0.24em] text-slate-500”>核心功能</p>
-              <div className=”mt-4 space-y-4 text-sm leading-7 text-slate-300”>
-                <div className=”flex items-start gap-3”><CheckCircle size={18} weight=”fill” className=”mt-1 text-emerald-300” /><span>离线词典与在线翻译</span></div>
-                <div className=”flex items-start gap-3”><CheckCircle size={18} weight=”fill” className=”mt-1 text-emerald-300” /><span>音标中文谐音标注</span></div>
-                <div className=”flex items-start gap-3”><CheckCircle size={18} weight=”fill” className=”mt-1 text-emerald-300” /><span>收藏管理与历史记录</span></div>
+          <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-[1.75rem] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">核心功能</p>
+              <div className="mt-4 space-y-4 text-sm leading-7 text-slate-300">
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>离线词典与在线翻译</span></div>
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>音标中文谐音标注</span></div>
+                <div className="flex items-start gap-3"><CheckCircle size={18} weight="fill" className="mt-1 text-emerald-300" /><span>收藏管理与历史记录</span></div>
               </div>
             </div>
-            <div className=”rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]”>
-              <p className=”text-xs uppercase tracking-[0.24em] text-slate-500”>版本信息</p>
-              <p className=”mt-4 text-2xl font-semibold tracking-tight text-white”>v0.1.0</p>
-              <p className=”mt-3 text-sm leading-7 text-slate-400”>基础功能已完成，支持快捷键、弹窗翻译和本地 HTTP API。</p>
+            <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">版本信息</p>
+              <p className="mt-4 text-2xl font-semibold tracking-tight text-white">v0.1.0</p>
+              <p className="mt-3 text-sm leading-7 text-slate-400">基础功能已完成，支持快捷键、弹窗翻译和本地 HTTP API。</p>
             </div>
           </div>
         </section>

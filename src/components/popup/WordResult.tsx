@@ -1,6 +1,4 @@
-import { Copy, Waveform } from '@phosphor-icons/react'
-import { getResultProviderLabel, type TranslationResult } from '../../lib/tauri'
-import { StatusPill } from '../ui/StatusPill'
+import { type TranslationResult } from '../../lib/tauri'
 
 interface WordResultProps {
   data: TranslationResult

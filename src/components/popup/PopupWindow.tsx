@@ -1,16 +1,14 @@
-import { Sparkle, Translate } from '@phosphor-icons/react'
+import { Sparkle } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import {
   addFavorite,
-  getResultProviderLabel,
   hidePopup,
   isTauriRuntime,
   type TranslationMode,
 } from '../../lib/tauri'
 import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
-import { ModeSwitch } from '../translation/ModeSwitch'
 import { StatusPill } from '../ui/StatusPill'
 import { ActionBar } from './ActionBar'
 import { SentenceResult } from './SentenceResult'
@@ -24,10 +22,6 @@ export function PopupWindow() {
   const streaming = useTranslationStore((state) => state.streaming)
   const streamText = useTranslationStore((state) => state.streamText)
   const error = useTranslationStore((state) => state.error)
-  const mode = useTranslationStore((state) => state.mode)
-  const resolvedMode = useTranslationStore((state) => state.resolvedMode)
-  const statusNote = useTranslationStore((state) => state.statusNote)
-  const providerHint = useTranslationStore((state) => state.providerHint)
   const seedDemo = useTranslationStore((state) => state.seedDemo)
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
@@ -41,16 +35,11 @@ export function PopupWindow() {
     scope: '',
     value: null,
   })
-  const [actionHintState, setActionHintState] = useState<{ scope: string; value: string | null }>({
-    scope: '',
-    value: null,
-  })
   const actionBarRef = useRef<HTMLDivElement | null>(null)
 
   const canFavorite = useMemo(() => result?.mode === 'word', [result])
   const favoriteLabel = favoriteLabelState.scope === actionScope && favoriteLabelState.value ? favoriteLabelState.value : '收藏'
   const copyLabel = copyLabelState.scope === actionScope && copyLabelState.value ? copyLabelState.value : '复制'
-  const actionHint = actionHintState.scope === actionScope ? actionHintState.value : null
 
   const setFavoriteLabel = useCallback(
     (value: string | null) => setFavoriteLabelState({ scope: actionScope, value }),
@@ -58,10 +47,6 @@ export function PopupWindow() {
   )
   const setCopyLabel = useCallback(
     (value: string | null) => setCopyLabelState({ scope: actionScope, value }),
-    [actionScope],
-  )
-  const setActionHint = useCallback(
-    (value: string | null) => setActionHintState({ scope: actionScope, value }),
     [actionScope],
   )
   const isEditableTarget = useCallback((target: EventTarget | null) => {
@@ -119,7 +104,6 @@ export function PopupWindow() {
     }
 
     if (!navigator.clipboard?.writeText) {
-      setActionHint('当前环境不支持复制')
       return
     }
 
@@ -127,12 +111,11 @@ export function PopupWindow() {
       .writeText(result.translated_text)
       .then(() => {
         setCopyLabel('已复制')
-        setActionHint('译文已复制到剪贴板')
       })
-      .catch((copyError) => {
-        setActionHint(copyError instanceof Error ? copyError.message : '复制失败')
+      .catch(() => {
+        // Copy failed
       })
-  }, [result, setActionHint, setCopyLabel])
+  }, [result, setCopyLabel])
 
   const handleFavorite = useCallback(() => {
     if (!result || result.mode !== 'word') {
@@ -148,15 +131,14 @@ export function PopupWindow() {
     })
       .then((notice) => {
         setFavoriteLabel('已收藏')
-        setActionHint(notice ?? '已加入收藏列表')
         if (notice) {
           window.alert(notice)
         }
       })
-      .catch((favoriteError) => {
-        setActionHint(favoriteError instanceof Error ? favoriteError.message : '收藏失败')
+      .catch(() => {
+        // Favorite failed
       })
-  }, [result, setActionHint, setFavoriteLabel])
+  }, [result, setFavoriteLabel])
 
   const handleSpeak = useCallback(() => {
     if (!result) {
@@ -165,11 +147,10 @@ export function PopupWindow() {
 
     try {
       speakText(result.source_text)
-      setActionHint('正在朗读原文')
-    } catch (speakerError) {
-      setActionHint(speakerError instanceof Error ? speakerError.message : '朗读失败')
+    } catch {
+      // Speak failed
     }
-  }, [result, setActionHint])
+  }, [result])
 
   const handleModeChange = useCallback(
     (nextMode: TranslationMode) => {

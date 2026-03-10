@@ -91,6 +91,77 @@ fn handle_input_trigger(request: Request, app: &tauri::AppHandle) {
     }
 }
 
+fn handle_debug_ecdict(request: Request, app: &tauri::AppHandle) {
+    let url = request.url();
+    let word = url
+        .split('?')
+        .nth(1)
+        .and_then(|query| {
+            query.split('&').find_map(|pair| {
+                let mut parts = pair.split('=');
+                if parts.next() == Some("word") {
+                    parts.next()
+                } else {
+                    None
+                }
+            })
+        })
+        .unwrap_or("");
+
+    if word.is_empty() {
+        respond_json(
+            request,
+            json!({ "ok": false, "error": "缺少 word 参数" }),
+            StatusCode(400),
+        );
+        return;
+    }
+
+    match commands::debug::debug_ecdict_lookup(app.clone(), word.to_string()) {
+        Ok(result) => respond_json(request, json!({ "ok": true, "data": result }), StatusCode(200)),
+        Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
+    }
+}
+
+fn handle_debug_stats(request: Request, app: &tauri::AppHandle) {
+    match commands::debug::debug_dict_stats(app.clone()) {
+        Ok(result) => respond_json(request, json!({ "ok": true, "data": result }), StatusCode(200)),
+        Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
+    }
+}
+
+fn handle_debug_phonetic(request: Request) {
+    let url = request.url();
+    let ipa = url
+        .split('?')
+        .nth(1)
+        .and_then(|query| {
+            query.split('&').find_map(|pair| {
+                let mut parts = pair.split('=');
+                if parts.next() == Some("ipa") {
+                    parts.next()
+                } else {
+                    None
+                }
+            })
+        })
+        .unwrap_or("");
+
+    if ipa.is_empty() {
+        respond_json(
+            request,
+            json!({ "ok": false, "error": "缺少 ipa 参数" }),
+            StatusCode(400),
+        );
+        return;
+    }
+
+    match commands::debug::debug_phonetic_hint(ipa.to_string()) {
+        Ok(result) => respond_json(request, json!({ "ok": true, "data": result }), StatusCode(200)),
+        Err(error) => respond_json(request, json!({ "ok": false, "error": error }), StatusCode(500)),
+    }
+}
+
 // 本地 HTTP API 只监听 127.0.0.1，
 // 这样 Alfred / Raycast / 脚本可以调用，但不会暴露到局域网。
 pub fn start_http_server(port: u16, app: tauri::AppHandle) {
@@ -110,10 +181,14 @@ pub fn start_http_server(port: u16, app: tauri::AppHandle) {
     let _ = SERVER_STARTED.set(());
     thread::spawn(move || {
         for request in server.incoming_requests() {
-            match (request.method(), request.url()) {
+            let url = request.url();
+            match (request.method(), url) {
                 (&Method::Post, "/translate") => handle_translate(request, &app),
                 (&Method::Get, "/selection_translate") => handle_selection_trigger(request, &app),
                 (&Method::Get, "/input_translate") => handle_input_trigger(request, &app),
+                (&Method::Get, url) if url.starts_with("/debug/ecdict") => handle_debug_ecdict(request, &app),
+                (&Method::Get, "/debug/stats") => handle_debug_stats(request, &app),
+                (&Method::Get, url) if url.starts_with("/debug/phonetic") => handle_debug_phonetic(request),
                 _ => respond_json(
                     request,
                     json!({ "ok": false, "error": "Not Found" }),

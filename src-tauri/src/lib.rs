@@ -164,6 +164,9 @@ pub fn run() {
             commands::favorite::get_favorites,
             commands::favorite::export_favorites,
             commands::history::get_history,
+            commands::debug::debug_ecdict_lookup,
+            commands::debug::debug_phonetic_hint,
+            commands::debug::debug_dict_stats,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run EchoWord application")

@@ -1,27 +1,31 @@
 import {
+  Bug,
   ClockCounterClockwise,
   GearSix,
-  GridFour,
   HeartStraight,
-  Lightning,
   Waveform,
 } from '@phosphor-icons/react'
 import { useEffect } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { InputTranslateDialog } from './components/translation/InputTranslateDialog'
 import { BackgroundDecor } from './components/ui/BackgroundDecor'
-import { StatusPill } from './components/ui/StatusPill'
+import { TitleBar } from './components/ui/TitleBar'
 import { useTheme } from './hooks/useTheme'
+import { isTauriRuntime } from './lib/tauri'
+import { DebugPage } from './pages/DebugPage'
 import { FavoritesPage } from './pages/FavoritesPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useSettingsStore } from './stores/settingsStore'
 
+const isDev = import.meta.env.DEV
+
 const navItems = [
   { to: '/settings', label: '设置', icon: GearSix },
   { to: '/favorites', label: '收藏', icon: HeartStraight },
   { to: '/history', label: '历史', icon: ClockCounterClockwise },
+  ...(isDev ? [{ to: '/debug', label: '调试', icon: Bug }] : []),
 ] as const
 
 function HomeRedirect() {
@@ -80,9 +84,10 @@ function AppFrame() {
   return (
     <div className="relative min-h-[100dvh] overflow-hidden text-slate-50">
       <BackgroundDecor />
+      {isTauriRuntime() && !isOnboarding && <TitleBar />}
       {!isOnboarding ? (
         <>
-          <div className="relative mx-auto max-w-[1200px] px-3 py-3 sm:px-4 lg:px-6">
+          <div className="relative mx-auto max-w-[1200px] px-3 py-3 sm:px-4 lg:px-6" style={{ paddingTop: isTauriRuntime() ? '2.5rem' : '0.75rem' }}>
             <div className="grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
               <aside className="relative overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.72))] p-4 shadow-[0_20px_50px_-20px_rgba(2,6,23,0.92)] backdrop-blur-2xl lg:sticky lg:top-3 lg:h-[calc(100dvh-1.5rem)]">
                 <div className="relative flex h-full flex-col">
@@ -130,6 +135,7 @@ function AppFrame() {
                   <Route path="/settings/*" element={<SettingsPage />} />
                   <Route path="/favorites" element={<FavoritesPage />} />
                   <Route path="/history" element={<HistoryPage />} />
+                  {isDev && <Route path="/debug" element={<DebugPage />} />}
                   <Route path="*" element={<Navigate to="/settings" replace />} />
                 </Routes>
               </main>

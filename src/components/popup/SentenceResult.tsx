@@ -1,6 +1,4 @@
-import { Copy, Stack, Translate } from '@phosphor-icons/react'
-import { getResultProviderLabel, type TranslationResult } from '../../lib/tauri'
-import { StatusPill } from '../ui/StatusPill'
+import { type TranslationResult } from '../../lib/tauri'
 
 interface SentenceResultProps {
   data: TranslationResult
