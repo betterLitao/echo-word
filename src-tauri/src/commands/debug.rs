@@ -35,7 +35,6 @@ pub fn debug_phonetic_hint(phonetic: String) -> Result<String, String> {
 #[tauri::command]
 pub fn debug_dict_stats(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
     use rusqlite::Connection;
-    use std::path::PathBuf;
 
     // 复用 EcdictProvider 的路径解析逻辑
     let mut candidates = Vec::new();

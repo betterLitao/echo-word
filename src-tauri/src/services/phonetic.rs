@@ -48,7 +48,7 @@ const IPA_MAP: &[(&str, &str)] = &[
 pub fn to_chinese_hint(phonetic: &str) -> String {
     let sanitized = phonetic
         .trim_matches('/')
-        .replace(['ˈ', 'ˌ'], "")
+        .replace(['ˈ', 'ˌ', '\'', '\u{2018}', '\u{2019}'], "") // 移除重音符号和引号
         .replace(' ', "");
 
     let chars: Vec<char> = sanitized.chars().collect();
@@ -58,6 +58,7 @@ pub fn to_chinese_hint(phonetic: &str) -> String {
     while index < chars.len() {
         let mut matched = false;
 
+        // 尝试匹配 3/2/1 个字符的组合
         for size in [3, 2, 1] {
             if index + size > chars.len() {
                 continue;
@@ -72,10 +73,14 @@ pub fn to_chinese_hint(phonetic: &str) -> String {
             }
         }
 
+        // 未匹配的字符跳过，不显示
         if !matched {
-            parts.push(chars[index].to_string());
             index += 1;
         }
+    }
+
+    if parts.is_empty() {
+        return "暂无音标谐音".to_string();
     }
 
     parts.join(" · ")
