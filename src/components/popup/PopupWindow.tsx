@@ -289,46 +289,30 @@ export function PopupWindow() {
         }
       }}
     >
-      <div className="relative mx-auto max-w-[400px] overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(2,6,23,0.82))] p-5 shadow-[0_32px_90px_-40px_rgba(2,6,23,0.96)] backdrop-blur-2xl">
-        <div className="pointer-events-none absolute inset-px rounded-[1.9rem] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
-
-        <div data-tauri-drag-region className="relative mb-5 flex cursor-move select-none items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300/88">Popup</p>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
-              {result?.mode === 'sentence' || streamText ? '句子翻译结果' : '单词翻译结果'}
-            </h1>
-          </div>
-          <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-black/20 text-emerald-200">
-            <Sparkle size={18} weight="duotone" />
-          </div>
-        </div>
-
-        <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3">
-          <ModeSwitch value={mode} onChange={handleModeChange} />
-          {resolvedMode ? <StatusPill icon={<Translate size={14} weight="duotone" />} label={`当前 ${resolvedMode}`} tone="accent" /> : null}
-        </div>
+      <div
+        className="relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl"
+        onMouseLeave={() => void hidePopup()}
+      >
+        <div className="pointer-events-none absolute inset-px rounded-[calc(1rem-1px)] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
 
         {loading && !streamText ? (
-          <div className="relative space-y-3 py-2">
-            <div className="h-24 animate-pulse rounded-[1.4rem] bg-white/[0.05]" />
-            <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/[0.04]" />
+          <div className="relative space-y-2 py-2">
+            <div className="h-16 animate-pulse rounded-xl bg-white/[0.05]" />
+            <div className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
           </div>
         ) : null}
 
         {streamText && !result ? (
-          <div className="relative space-y-4 rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-            <div className="flex flex-wrap gap-2">
-              <StatusPill icon={<Sparkle size={14} weight="duotone" />} label={streaming ? 'Streaming' : 'Stream Ready'} tone="accent" />
-            </div>
-            <div className="text-sm leading-7 text-slate-100">
+          <div className="relative space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
+            <StatusPill icon={<Sparkle size={14} weight="duotone" />} label={streaming ? 'Streaming' : 'Stream Ready'} tone="accent" />
+            <div className="text-sm leading-6 text-slate-100">
               <p className="whitespace-pre-wrap break-words">{streamText}</p>
             </div>
           </div>
         ) : null}
 
         {!loading && error ? (
-          <div className="relative rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 p-4 text-sm leading-7 text-rose-200">{error}</div>
+          <div className="relative rounded-xl border border-rose-400/20 bg-rose-400/10 p-3 text-sm leading-6 text-rose-200">{error}</div>
         ) : null}
 
         {!loading && !error && result ? (
@@ -336,28 +320,24 @@ export function PopupWindow() {
         ) : null}
 
         {!loading && !error && !result && !streamText ? (
-          <div className="relative rounded-[1.5rem] border border-dashed border-white/10 p-6 text-sm leading-7 text-slate-400">等待翻译结果...</div>
+          <div className="relative rounded-xl border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">等待翻译结果...</div>
         ) : null}
 
-        {(result || streamText) && (statusNote || actionHint || providerHint) ? (
-          <div className="relative mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 px-4 py-3 text-xs leading-6 text-slate-400">
-            {(result ? getResultProviderLabel(result) : providerHint ?? 'OpenAI')} · {actionHint ?? statusNote}
+        {result && canFavorite ? (
+          <div className="relative mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+            <ActionBar
+              containerRef={actionBarRef}
+              copyDisabled={!result}
+              copyLabel={copyLabel}
+              favoriteLabel={favoriteLabel}
+              showFavorite={canFavorite}
+              onCopy={handleCopy}
+              onFavorite={handleFavorite}
+              onSpeak={handleSpeak}
+              onClose={() => void hidePopup()}
+            />
           </div>
         ) : null}
-
-        <div className="relative mt-5 border-t border-white/10 pt-4">
-          <ActionBar
-            containerRef={actionBarRef}
-            copyDisabled={!result}
-            copyLabel={copyLabel}
-            favoriteLabel={favoriteLabel}
-            showFavorite={canFavorite}
-            onCopy={handleCopy}
-            onFavorite={handleFavorite}
-            onSpeak={handleSpeak}
-            onClose={() => void hidePopup()}
-          />
-        </div>
       </div>
     </div>
   )
