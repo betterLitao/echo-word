@@ -10,7 +10,6 @@ import {
 import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
 import { StatusPill } from '../ui/StatusPill'
-import { ActionBar } from './ActionBar'
 import { SentenceResult } from './SentenceResult'
 import { WordResult } from './WordResult'
 
@@ -26,19 +25,9 @@ export function PopupWindow() {
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
 
-  const actionScope = `${result?.source_text ?? ''}:${streamText}`
-  const [favoriteLabelState, setFavoriteLabelState] = useState<{ scope: string; value: string | null }>({
-    scope: '',
-    value: null,
-  })
-  const [copyLabelState, setCopyLabelState] = useState<{ scope: string; value: string | null }>({
-    scope: '',
-    value: null,
-  })
   const [isHovering, setIsHovering] = useState(false)
   const [opacity, setOpacity] = useState(1)
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const actionBarRef = useRef<HTMLDivElement | null>(null)
 
   // 弹窗淡出逻辑
   useEffect(() => {
@@ -67,67 +56,6 @@ export function PopupWindow() {
     }
   }, [isHovering, result])
 
-  const canFavorite = useMemo(() => result?.mode === 'word', [result])
-  const favoriteLabel = favoriteLabelState.scope === actionScope && favoriteLabelState.value ? favoriteLabelState.value : '收藏'
-  const copyLabel = copyLabelState.scope === actionScope && copyLabelState.value ? copyLabelState.value : '复制'
-
-  const setFavoriteLabel = useCallback(
-    (value: string | null) => setFavoriteLabelState({ scope: actionScope, value }),
-    [actionScope],
-  )
-  const setCopyLabel = useCallback(
-    (value: string | null) => setCopyLabelState({ scope: actionScope, value }),
-    [actionScope],
-  )
-  const isEditableTarget = useCallback((target: EventTarget | null) => {
-    if (!(target instanceof HTMLElement)) {
-      return false
-    }
-
-    return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
-  }, [])
-  const hasUserSelection = useCallback(() => {
-    const selection = window.getSelection()
-    return Boolean(selection?.toString().trim())
-  }, [])
-
-  const getActionButtons = useCallback(() => {
-    if (!actionBarRef.current) {
-      return []
-    }
-
-    return Array.from(
-      actionBarRef.current.querySelectorAll<HTMLButtonElement>('[data-popup-action]:not(:disabled)'),
-    )
-  }, [])
-
-  const focusActionAt = useCallback(
-    (index: number) => {
-      const buttons = getActionButtons()
-      if (buttons.length === 0) {
-        return
-      }
-
-      const normalizedIndex = ((index % buttons.length) + buttons.length) % buttons.length
-      buttons[normalizedIndex]?.focus()
-    },
-    [getActionButtons],
-  )
-
-  const focusNextAction = useCallback(
-    (direction: 1 | -1) => {
-      const buttons = getActionButtons()
-      if (buttons.length === 0) {
-        return
-      }
-
-      const currentIndex = buttons.findIndex((button) => button === document.activeElement)
-      const nextIndex = currentIndex === -1 ? (direction === 1 ? 0 : buttons.length - 1) : currentIndex + direction
-      focusActionAt(nextIndex)
-    },
-    [focusActionAt, getActionButtons],
-  )
-
   const handleCopy = useCallback(() => {
     if (!result) {
       return
@@ -140,46 +68,11 @@ export function PopupWindow() {
     void navigator.clipboard
       .writeText(result.translated_text)
       .then(() => {
-        setCopyLabel('已复制')
+        // 复制成功，可以添加提示
       })
       .catch(() => {
         // Copy failed
       })
-  }, [result, setCopyLabel])
-
-  const handleFavorite = useCallback(() => {
-    if (!result || result.mode !== 'word') {
-      return
-    }
-
-    void addFavorite({
-      word: result.source_text,
-      phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
-      chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
-      translation: result.translated_text,
-      source_text: result.source_text,
-    })
-      .then((notice) => {
-        setFavoriteLabel('已收藏')
-        if (notice) {
-          window.alert(notice)
-        }
-      })
-      .catch(() => {
-        // Favorite failed
-      })
-  }, [result, setFavoriteLabel])
-
-  const handleSpeak = useCallback(() => {
-    if (!result) {
-      return
-    }
-
-    try {
-      speakText(result.source_text)
-    } catch {
-      // Speak failed
-    }
   }, [result])
 
   const handleModeChange = useCallback(
@@ -197,18 +90,6 @@ export function PopupWindow() {
   }, [seedDemo])
 
   useEffect(() => {
-    if (loading || error || !result) {
-      return
-    }
-
-    const timer = window.setTimeout(() => {
-      focusActionAt(0)
-    }, 0)
-
-    return () => window.clearTimeout(timer)
-  }, [error, focusActionAt, loading, result])
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const normalizedKey = event.key.toLowerCase()
 
@@ -219,7 +100,8 @@ export function PopupWindow() {
       }
 
       if ((event.ctrlKey || event.metaKey) && normalizedKey === 'c') {
-        if (hasUserSelection()) {
+        const selection = window.getSelection()
+        if (selection?.toString().trim()) {
           return
         }
 
@@ -228,29 +110,6 @@ export function PopupWindow() {
           handleCopy()
         }
         return
-      }
-
-      if (isEditableTarget(event.target)) {
-        return
-      }
-
-      if (event.key === 'Tab') {
-        const buttons = getActionButtons()
-        if (buttons.length > 0) {
-          event.preventDefault()
-          focusNextAction(event.shiftKey ? -1 : 1)
-        }
-        return
-      }
-
-      if (event.key === 'Enter') {
-        const buttons = getActionButtons()
-        const activeButton = buttons.find((button) => button === document.activeElement)
-        if (activeButton) {
-          event.preventDefault()
-          activeButton.click()
-          return
-        }
       }
 
       if (!result) {
@@ -272,24 +131,12 @@ export function PopupWindow() {
       if (normalizedKey === 'c') {
         event.preventDefault()
         handleCopy()
-        return
-      }
-
-      if (normalizedKey === 'f' && canFavorite) {
-        event.preventDefault()
-        handleFavorite()
-        return
-      }
-
-      if (normalizedKey === 'r') {
-        event.preventDefault()
-        handleSpeak()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canFavorite, focusNextAction, getActionButtons, handleCopy, handleFavorite, handleModeChange, handleSpeak, hasUserSelection, isEditableTarget, result])
+  }, [handleCopy, handleModeChange, result])
 
   return (
     <div
@@ -356,22 +203,6 @@ export function PopupWindow() {
 
         {!loading && !error && !result && !streamText ? (
           <div className="relative rounded-xl border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">等待翻译结果...</div>
-        ) : null}
-
-        {result && canFavorite ? (
-          <div className="relative mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
-            <ActionBar
-              containerRef={actionBarRef}
-              copyDisabled={!result}
-              copyLabel={copyLabel}
-              favoriteLabel={favoriteLabel}
-              showFavorite={canFavorite}
-              onCopy={handleCopy}
-              onFavorite={handleFavorite}
-              onSpeak={handleSpeak}
-              onClose={() => void hidePopup()}
-            />
-          </div>
         ) : null}
       </div>
     </div>
