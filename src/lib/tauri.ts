@@ -80,6 +80,7 @@ export interface Settings {
   privacy_mode: boolean
   auto_start: boolean
   clipboard_listen: boolean
+  global_selection_listen: boolean
   auto_update: boolean
   proxy_enabled: boolean
   proxy_url: string
@@ -112,6 +113,7 @@ export const defaultSettings: Settings = {
   privacy_mode: false,
   auto_start: false,
   clipboard_listen: false,
+  global_selection_listen: false,
   auto_update: true,
   proxy_enabled: false,
   proxy_url: '',

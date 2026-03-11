@@ -87,6 +87,7 @@ export function GeneralTab() {
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <StatusPill icon={<Globe size={14} weight="duotone" />} label={`剪贴板监听 ${settings.clipboard_listen ? '开启' : '关闭'}`} tone={settings.clipboard_listen ? 'accent' : 'muted'} />
+            <StatusPill icon={<Globe size={14} weight="duotone" />} label={`全局划词 ${settings.global_selection_listen ? '开启' : '关闭'}`} tone={settings.global_selection_listen ? 'accent' : 'muted'} />
             <StatusPill icon={<Sun size={14} weight="duotone" />} label={`开机自启 ${settings.auto_start ? '开启' : '关闭'}`} tone={settings.auto_start ? 'accent' : 'muted'} />
             <StatusPill icon={<Moon size={14} weight="duotone" />} label={`隐私模式 ${settings.privacy_mode ? '开启' : '关闭'}`} tone={settings.privacy_mode ? 'accent' : 'muted'} />
             <StatusPill icon={<Waveform size={14} weight="duotone" />} label={`端口 ${settings.http_api_port}`} />
@@ -97,6 +98,9 @@ export function GeneralTab() {
           <div className="grid gap-3">
             <Button variant="secondary" onClick={() => void updateSetting('clipboard_listen', !settings.clipboard_listen)}>
               {settings.clipboard_listen ? '关闭剪贴板监听' : '开启剪贴板监听'}
+            </Button>
+            <Button variant="secondary" onClick={() => void updateSetting('global_selection_listen', !settings.global_selection_listen)}>
+              {settings.global_selection_listen ? '关闭全局划词监听' : '开启全局划词监听'}
             </Button>
             <Button variant="secondary" onClick={() => void updateSetting('auto_start', !settings.auto_start)}>
               {settings.auto_start ? '关闭开机自启' : '开启开机自启'}

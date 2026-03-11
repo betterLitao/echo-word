@@ -33,6 +33,20 @@
         "transparent": true,
         "alwaysOnTop": true,
         "skipTaskbar": true
+      },
+      {
+        "label": "translation-icon",
+        "title": "Translation Icon",
+        "url": "/translation-icon.html",
+        "width": 40,
+        "height": 40,
+        "visible": false,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false
       }
     ],
     "security": {

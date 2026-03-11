@@ -144,6 +144,7 @@ pub fn run() {
             http_server::start_http_server(settings.http_api_port, app.handle().clone());
             services::selection::start_selection_watcher(app.handle().clone());
             services::clipboard::start_clipboard_watcher(app.handle().clone());
+            services::global_selection::start_global_selection_watcher(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -167,6 +168,7 @@ pub fn run() {
             commands::debug::debug_ecdict_lookup,
             commands::debug::debug_phonetic_hint,
             commands::debug::debug_dict_stats,
+            services::global_selection::trigger_global_selection_translate,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run EchoWord application")
