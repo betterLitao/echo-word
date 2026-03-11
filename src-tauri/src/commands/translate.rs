@@ -424,7 +424,7 @@ fn try_read_selection_via_clipboard() -> Result<String, String> {
     }
 
     if !updated {
-        return Err(format!("剪贴板未更新（尝试了 {} 次），可能没有选中文本", attempts));
+        return Err("未检测到选中文本，请先选中要翻译的内容".to_string());
     }
 
     // 额外等待 50ms 确保内容稳定

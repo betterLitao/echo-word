@@ -10,6 +10,7 @@ import {
 import { speakText } from '../../lib/tts'
 import { useTranslationStore } from '../../stores/translationStore'
 import { StatusPill } from '../ui/StatusPill'
+import { ActionBar } from './ActionBar'
 import { SentenceResult } from './SentenceResult'
 import { WordResult } from './WordResult'
 
@@ -28,6 +29,21 @@ export function PopupWindow() {
   const [isHovering, setIsHovering] = useState(false)
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
+  const actionBarRef = useRef<HTMLDivElement | null>(null)
+
+  const actionScope = `${result?.source_text ?? ''}:${streamText}`
+  const [favoriteLabelState, setFavoriteLabelState] = useState<{ scope: string; value: string | null }>({
+    scope: '',
+    value: null,
+  })
+
+  const canFavorite = useMemo(() => result?.mode === 'word', [result])
+  const favoriteLabel = favoriteLabelState.scope === actionScope && favoriteLabelState.value ? favoriteLabelState.value : '收藏'
+
+  const setFavoriteLabel = useCallback(
+    (value: string | null) => setFavoriteLabelState({ scope: actionScope, value }),
+    [actionScope],
+  )
 
   // 鼠标移出后 800ms 自动关闭
   useEffect(() => {
@@ -96,6 +112,41 @@ export function PopupWindow() {
       .catch(() => {
         // Copy failed
       })
+  }, [result])
+
+  const handleFavorite = useCallback(() => {
+    if (!result || result.mode !== 'word') {
+      return
+    }
+
+    void addFavorite({
+      word: result.source_text,
+      phonetic: result.word_detail?.phonetic_us ?? result.word_detail?.phonetic_uk ?? null,
+      chinese_phonetic: result.word_detail?.chinese_phonetic ?? null,
+      translation: result.translated_text,
+      source_text: result.source_text,
+    })
+      .then((notice) => {
+        setFavoriteLabel('已收藏')
+        if (notice) {
+          window.alert(notice)
+        }
+      })
+      .catch(() => {
+        // Favorite failed
+      })
+  }, [result, setFavoriteLabel])
+
+  const handleSpeak = useCallback(() => {
+    if (!result) {
+      return
+    }
+
+    try {
+      speakText(result.source_text)
+    } catch {
+      // Speak failed
+    }
   }, [result])
 
   const handleModeChange = useCallback(
@@ -221,6 +272,18 @@ export function PopupWindow() {
 
         {!loading && !error && !result && !streamText ? (
           <div className="relative rounded-xl border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">等待翻译结果...</div>
+        ) : null}
+
+        {result && canFavorite ? (
+          <div className="relative mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+            <ActionBar
+              containerRef={actionBarRef}
+              favoriteLabel={favoriteLabel}
+              showFavorite={canFavorite}
+              onFavorite={handleFavorite}
+              onSpeak={handleSpeak}
+            />
+          </div>
         ) : null}
       </div>
     </div>
