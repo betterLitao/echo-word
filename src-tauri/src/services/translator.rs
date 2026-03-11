@@ -27,6 +27,7 @@ pub struct WordDetail {
     pub phonetic_us: Option<String>,
     pub phonetic_uk: Option<String>,
     pub chinese_phonetic: String,
+    pub pinyin_phonetic: String,
     pub definitions: Vec<String>,
     pub pos: Option<String>,
 }
@@ -272,11 +273,16 @@ fn build_word_result(
         mode: TranslationMode::Word,
         word_detail: Some(WordDetail {
             phonetic_us: entry.phonetic.clone(),
-            phonetic_uk: entry.phonetic,
+            phonetic_uk: entry.phonetic.clone(),
             chinese_phonetic: if phonetic_text.is_empty() {
                 "暂无音标谐音".into()
             } else {
                 phonetic::to_chinese_hint(&phonetic_text)
+            },
+            pinyin_phonetic: if phonetic_text.is_empty() {
+                String::new()
+            } else {
+                phonetic::to_pinyin_hint(&phonetic_text)
             },
             definitions,
             pos: entry.pos.or(entry.exchange),

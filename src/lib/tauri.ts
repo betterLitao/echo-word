@@ -9,6 +9,7 @@ export interface WordDetail {
   phonetic_us?: string | null
   phonetic_uk?: string | null
   chinese_phonetic: string
+  pinyin_phonetic: string
   definitions: string[]
   pos?: string | null
 }

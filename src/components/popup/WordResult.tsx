@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { type TranslationResult } from '../../lib/tauri'
 
 interface WordResultProps {
@@ -6,6 +7,11 @@ interface WordResultProps {
 
 export function WordResult({ data }: WordResultProps) {
   const mainDefinitions = data.word_detail?.definitions?.slice(0, 3) ?? []
+  const [showPinyin, setShowPinyin] = useState(false)
+
+  const phoneticDisplay = showPinyin
+    ? data.word_detail?.pinyin_phonetic
+    : data.word_detail?.chinese_phonetic
 
   return (
     <div className="space-y-3">
@@ -15,8 +21,17 @@ export function WordResult({ data }: WordResultProps) {
           {data.word_detail?.phonetic_us ? (
             <span className="text-emerald-300">{data.word_detail.phonetic_us}</span>
           ) : null}
-          {data.word_detail?.chinese_phonetic ? (
-            <span>· {data.word_detail.chinese_phonetic}</span>
+          {phoneticDisplay ? (
+            <>
+              <span>·</span>
+              <button
+                onClick={() => setShowPinyin(!showPinyin)}
+                className="text-slate-300 transition-colors hover:text-emerald-300"
+                title={showPinyin ? '切换到中文谐音' : '切换到拼音'}
+              >
+                {phoneticDisplay}
+              </button>
+            </>
           ) : null}
         </div>
       </div>

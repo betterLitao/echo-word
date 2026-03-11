@@ -45,6 +45,54 @@ const IPA_MAP: &[(&str, &str)] = &[
     ("ʒ", "日"),
 ];
 
+// IPA 到拼音的映射表
+const IPA_TO_PINYIN: &[(&str, &str)] = &[
+    ("iː", "yi"),
+    ("ɪ", "i"),
+    ("e", "ei"),
+    ("æ", "ai"),
+    ("ɑː", "a"),
+    ("ɒ", "ao"),
+    ("ɔː", "ao"),
+    ("ʊ", "u"),
+    ("uː", "wu"),
+    ("ʌ", "a"),
+    ("ɜː", "er"),
+    ("ə", "e"),
+    ("eɪ", "ei"),
+    ("aɪ", "ai"),
+    ("ɔɪ", "oi"),
+    ("aʊ", "ao"),
+    ("əʊ", "ou"),
+    ("ɪə", "ie"),
+    ("eə", "ea"),
+    ("ʊə", "ue"),
+    ("tʃ", "ch"),
+    ("dʒ", "j"),
+    ("p", "p"),
+    ("b", "b"),
+    ("t", "t"),
+    ("d", "d"),
+    ("k", "k"),
+    ("ɡ", "g"),
+    ("f", "f"),
+    ("v", "v"),
+    ("s", "s"),
+    ("z", "z"),
+    ("m", "m"),
+    ("n", "n"),
+    ("ŋ", "ng"),
+    ("l", "l"),
+    ("r", "r"),
+    ("j", "y"),
+    ("w", "w"),
+    ("h", "h"),
+    ("θ", "th"),
+    ("ð", "dh"),
+    ("ʃ", "sh"),
+    ("ʒ", "zh"),
+];
+
 pub fn to_chinese_hint(phonetic: &str) -> String {
     let sanitized = phonetic
         .trim_matches('/')
@@ -84,4 +132,45 @@ pub fn to_chinese_hint(phonetic: &str) -> String {
     }
 
     parts.join(" · ")
+}
+
+pub fn to_pinyin_hint(phonetic: &str) -> String {
+    let sanitized = phonetic
+        .trim_matches('/')
+        .replace(['ˈ', 'ˌ', '\'', '\u{2018}', '\u{2019}'], "") // 移除重音符号和引号
+        .replace(' ', "");
+
+    let chars: Vec<char> = sanitized.chars().collect();
+    let mut index = 0;
+    let mut parts = Vec::new();
+
+    while index < chars.len() {
+        let mut matched = false;
+
+        // 尝试匹配 3/2/1 个字符的组合
+        for size in [3, 2, 1] {
+            if index + size > chars.len() {
+                continue;
+            }
+
+            let token: String = chars[index..index + size].iter().collect();
+            if let Some((_, mapped)) = IPA_TO_PINYIN.iter().find(|(ipa, _)| *ipa == token) {
+                parts.push((*mapped).to_string());
+                index += size;
+                matched = true;
+                break;
+            }
+        }
+
+        // 未匹配的字符跳过，不显示
+        if !matched {
+            index += 1;
+        }
+    }
+
+    if parts.is_empty() {
+        return "".to_string();
+    }
+
+    parts.join("-")
 }
