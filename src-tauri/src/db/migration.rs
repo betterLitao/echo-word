@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS: &[(&str, &str)] = &[
     ("privacy_mode", "false"),
     ("auto_start", "false"),
     ("clipboard_listen", "false"),
+    ("global_selection_listen", "false"),
     ("auto_update", "true"),
     ("proxy", "\"\""),
     ("proxy_enabled", "false"),

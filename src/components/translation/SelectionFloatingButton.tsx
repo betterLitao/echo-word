@@ -17,35 +17,43 @@ export function SelectionFloatingButton({ onTranslate }: SelectionFloatingButton
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    let hideTimer: NodeJS.Timeout
+    let hideTimer: NodeJS.Timeout | null = null
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
       // 延迟获取选中文本，确保选区已完成
       setTimeout(() => {
         const selection = window.getSelection()
         const text = selection?.toString().trim() || ''
 
         // 清除之前的定时器
-        clearTimeout(hideTimer)
+        if (hideTimer) {
+          clearTimeout(hideTimer)
+          hideTimer = null
+        }
 
         // 判断是否显示图标
         if (text.length >= 2 && /[a-zA-Z]/.test(text)) {
-          const range = selection?.getRangeAt(0)
-          const rect = range?.getBoundingClientRect()
+          try {
+            const range = selection?.getRangeAt(0)
+            const rect = range?.getBoundingClientRect()
 
-          if (rect) {
-            // 图标显示在选区右上角
-            setPosition({
-              x: rect.right + 8,
-              y: rect.top - 8,
-            })
-            setSelectedText(text)
-            setVisible(true)
+            if (rect && rect.width > 0 && rect.height > 0) {
+              // 图标显示在选区右上角，使用视口坐标（不加滚动偏移）
+              setPosition({
+                x: rect.right + 8,
+                y: rect.top - 8,
+              })
+              setSelectedText(text)
+              setVisible(true)
 
-            // 3 秒后自动隐藏
-            hideTimer = setTimeout(() => {
-              setVisible(false)
-            }, 3000)
+              // 3 秒后自动隐藏
+              hideTimer = setTimeout(() => {
+                setVisible(false)
+              }, 3000)
+            }
+          } catch (error) {
+            // 选区可能无效，忽略错误
+            console.debug('Selection error:', error)
           }
         } else {
           setVisible(false)
@@ -64,12 +72,15 @@ export function SelectionFloatingButton({ onTranslate }: SelectionFloatingButton
     return () => {
       document.removeEventListener('mouseup', handleMouseUp)
       document.removeEventListener('mousedown', handleMouseDown)
-      clearTimeout(hideTimer)
+      if (hideTimer) {
+        clearTimeout(hideTimer)
+      }
     }
   }, [])
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
+    e.preventDefault()
     onTranslate(selectedText)
     setVisible(false)
   }
@@ -83,7 +94,7 @@ export function SelectionFloatingButton({ onTranslate }: SelectionFloatingButton
           exit={{ scale: 0.8, opacity: 0 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           onClick={handleClick}
-          className="fixed z-[9999] flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-300/95 text-slate-950 shadow-[0_8px_24px_-8px_rgba(110,231,183,0.6)] backdrop-blur-sm transition-all hover:scale-110 hover:bg-emerald-300 hover:shadow-[0_12px_32px_-8px_rgba(110,231,183,0.8)]"
+          className="fixed z-[99999] flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300/30 bg-emerald-300/95 text-slate-950 shadow-[0_8px_24px_-8px_rgba(110,231,183,0.6)] backdrop-blur-sm transition-all hover:scale-110 hover:bg-emerald-300 hover:shadow-[0_12px_32px_-8px_rgba(110,231,183,0.8)]"
           style={{
             left: `${position.x}px`,
             top: `${position.y}px`,
