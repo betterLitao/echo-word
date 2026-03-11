@@ -26,35 +26,33 @@ export function PopupWindow() {
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
 
   const [isHovering, setIsHovering] = useState(false)
-  const [opacity, setOpacity] = useState(1)
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 弹窗淡出逻辑
+  // 弹窗显示后，点击外部区域立即隐藏
   useEffect(() => {
-    if (!isHovering && result) {
-      // 鼠标移出后延迟 2 秒开始淡出
-      hideTimerRef.current = setTimeout(() => {
-        setOpacity(0)
-        // 淡出动画完成后隐藏弹窗
-        setTimeout(() => {
-          void hidePopup()
-        }, 300)
-      }, 2000)
-    } else {
-      // 鼠标移回或无结果时，取消淡出并恢复显示
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current)
-        hideTimerRef.current = null
-      }
-      setOpacity(1)
+    if (!result) {
+      return
     }
 
-    return () => {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current)
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      // 检查是否点击在弹窗外部
+      if (target.closest('.popup-content')) {
+        return
       }
+      void hidePopup()
     }
-  }, [isHovering, result])
+
+    // 延迟添加监听器，避免立即触发
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [result])
 
   const handleCopy = useCallback(() => {
     if (!result) {
@@ -141,15 +139,9 @@ export function PopupWindow() {
   return (
     <div
       className="min-h-[100dvh] bg-transparent p-4 text-slate-50"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          void hidePopup()
-        }
-      }}
     >
       <div
-        className="relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl transition-opacity duration-300"
-        style={{ opacity }}
+        className="popup-content relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
