@@ -29,4 +29,9 @@ tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
 time = { version = "0.3", features = ["formatting", "macros"] }
 tiny_http = "0.12"
-windows-sys = { version = "0.59", features = ["Win32_System_DataExchange", "Win32_UI_Input_KeyboardAndMouse"] }
+get-selected-text = "0.1"
+windows = { version = "0.58", features = ["Win32_UI_Accessibility", "Win32_System_Com"] }
+windows-sys = { version = "0.59", features = [
+    "Win32_System_DataExchange",
+    "Win32_UI_Input_KeyboardAndMouse",
+] }

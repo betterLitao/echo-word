@@ -251,14 +251,192 @@ pub(crate) fn request_selection_translate_internal(
     app: tauri::AppHandle,
     source: &str,
 ) -> Result<(), String> {
-    let text = match platform::read_clipboard_text() {
-        Ok(text) => text,
-        Err(error) => {
+    let text = match get_selected_text_windows() {
+        Ok(t) => t,
+        Err(e) => {
+            let error = format!("获取选中文本失败: {}", e);
             report_popup_error(&app, &error);
             return Err(error);
         }
     };
+
+    if text.trim().is_empty() {
+        let error = "未检测到选中文本".to_string();
+        report_popup_error(&app, &error);
+        return Err(error);
+    }
+
     translate_captured_text_internal(app, text, source)
+}
+
+#[cfg(target_os = "windows")]
+fn get_selected_text_windows() -> Result<String, String> {
+    // 方案 1: 使用 get-selected-text crate（推荐）
+    match get_selected_text::get_selected_text() {
+        Ok(text) => {
+            if !text.trim().is_empty() {
+                return Ok(text);
+            }
+            // 选中文本为空，继续尝试剪贴板
+        }
+        Err(e) => {
+            eprintln!("get-selected-text 失败: {}", e);
+        }
+    }
+
+    // 方案 2: 降级到 SendInput + 剪贴板
+    try_read_selection_via_clipboard()
+}
+
+#[cfg(target_os = "windows")]
+fn try_read_selection_via_uia() -> Result<String, String> {
+    use windows::core::*;
+    use windows::Win32::System::Com::*;
+    use windows::Win32::UI::Accessibility::*;
+
+    unsafe {
+        // 初始化 COM
+        let hr = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+        if hr.is_err() {
+            return Err(format!("COM 初始化失败: {:?}", hr));
+        }
+
+        // 创建 UI Automation 实例
+        let automation: IUIAutomation = match CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER) {
+            Ok(a) => a,
+            Err(e) => {
+                CoUninitialize();
+                return Err(format!("创建 UI Automation 失败: {}", e));
+            }
+        };
+
+        // 获取焦点元素
+        let focused_element = match automation.GetFocusedElement() {
+            Ok(e) => e,
+            Err(e) => {
+                CoUninitialize();
+                return Err(format!("获取焦点元素失败: {}", e));
+            }
+        };
+
+        // 尝试获取 TextPattern
+        let text_pattern: windows::core::Result<IUIAutomationTextPattern> =
+            focused_element.GetCurrentPatternAs(UIA_TextPatternId);
+
+        if let Ok(text_pattern) = text_pattern {
+            // 获取选中的文本范围
+            if let Ok(selection_array) = text_pattern.GetSelection() {
+                if let Ok(length) = selection_array.Length() {
+                    if length > 0 {
+                        if let Ok(range) = selection_array.GetElement(0) {
+                            if let Ok(text_bstr) = range.GetText(-1) {
+                                let text = text_bstr.to_string();
+                                CoUninitialize();
+                                if !text.trim().is_empty() {
+                                    return Ok(text);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        CoUninitialize();
+        Err("无法通过 UI Automation 读取选中文本".to_string())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn try_read_selection_via_clipboard() -> Result<String, String> {
+    use std::mem;
+    use std::thread;
+    use std::time::Duration;
+    use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+        SendInput, INPUT, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VK_CONTROL, VK_C,
+    };
+
+    let old_sequence = unsafe {
+        windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber()
+    };
+
+    // 等待 100ms 确保快捷键释放
+    thread::sleep(Duration::from_millis(100));
+
+    // 使用 SendInput 模拟 Ctrl+C
+    unsafe {
+        let mut inputs: [INPUT; 4] = mem::zeroed();
+
+        inputs[0].r#type = INPUT_KEYBOARD;
+        inputs[0].Anonymous.ki = KEYBDINPUT {
+            wVk: VK_CONTROL,
+            wScan: 0,
+            dwFlags: 0,
+            time: 0,
+            dwExtraInfo: 0,
+        };
+
+        inputs[1].r#type = INPUT_KEYBOARD;
+        inputs[1].Anonymous.ki = KEYBDINPUT {
+            wVk: VK_C,
+            wScan: 0,
+            dwFlags: 0,
+            time: 0,
+            dwExtraInfo: 0,
+        };
+
+        inputs[2].r#type = INPUT_KEYBOARD;
+        inputs[2].Anonymous.ki = KEYBDINPUT {
+            wVk: VK_C,
+            wScan: 0,
+            dwFlags: KEYEVENTF_KEYUP,
+            time: 0,
+            dwExtraInfo: 0,
+        };
+
+        inputs[3].r#type = INPUT_KEYBOARD;
+        inputs[3].Anonymous.ki = KEYBDINPUT {
+            wVk: VK_CONTROL,
+            wScan: 0,
+            dwFlags: KEYEVENTF_KEYUP,
+            time: 0,
+            dwExtraInfo: 0,
+        };
+
+        let sent = SendInput(4, inputs.as_ptr(), mem::size_of::<INPUT>() as i32);
+        if sent != 4 {
+            return Err(format!("SendInput 失败，只发送了 {} / 4 个输入事件", sent));
+        }
+    }
+
+    // 等待剪贴板更新（最多 1000ms）
+    let mut attempts = 0;
+    let mut updated = false;
+    while attempts < 100 {
+        thread::sleep(Duration::from_millis(10));
+        let new_sequence = unsafe {
+            windows_sys::Win32::System::DataExchange::GetClipboardSequenceNumber()
+        };
+        if new_sequence != old_sequence {
+            updated = true;
+            break;
+        }
+        attempts += 1;
+    }
+
+    if !updated {
+        return Err(format!("剪贴板未更新（尝试了 {} 次），可能没有选中文本", attempts));
+    }
+
+    // 额外等待 50ms 确保内容稳定
+    thread::sleep(Duration::from_millis(50));
+
+    platform::read_clipboard_text()
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_selected_text_windows() -> Result<String, String> {
+    Err("当前平台不支持".to_string())
 }
 
 #[tauri::command]
