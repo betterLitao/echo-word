@@ -1,4 +1,4 @@
-import { Sparkle } from '@phosphor-icons/react'
+import { Copy, Sparkle, X } from '@phosphor-icons/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import {
@@ -307,6 +307,28 @@ export function PopupWindow() {
         onMouseLeave={() => setIsHovering(false)}
       >
         <div className="pointer-events-none absolute inset-px rounded-[calc(1rem-1px)] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
+
+        {/* 右上角复制和关闭按钮 */}
+        <div
+          className="absolute right-2 top-2 z-10 flex gap-1 transition-opacity duration-200"
+          style={{ opacity: isHovering ? 1 : 0 }}
+        >
+          <button
+            onClick={handleCopy}
+            disabled={!result}
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-slate-300 transition-all hover:bg-white/20 hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+            title="复制"
+          >
+            <Copy size={14} weight="bold" />
+          </button>
+          <button
+            onClick={() => void hidePopup()}
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 text-slate-300 transition-all hover:bg-white/20 hover:text-slate-100"
+            title="关闭"
+          >
+            <X size={14} weight="bold" />
+          </button>
+        </div>
 
         {loading && !streamText ? (
           <div className="relative space-y-2 py-2">
