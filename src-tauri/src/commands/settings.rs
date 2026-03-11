@@ -194,6 +194,7 @@ pub(crate) fn load_settings_from_db(app: &tauri::AppHandle) -> Result<AppSetting
         privacy_mode: parse_value(map.get("privacy_mode"), defaults.privacy_mode),
         auto_start,
         clipboard_listen: parse_value(map.get("clipboard_listen"), defaults.clipboard_listen),
+        global_selection_listen: parse_value(map.get("global_selection_listen"), defaults.global_selection_listen),
         auto_update: parse_value(map.get("auto_update"), defaults.auto_update),
         proxy_enabled,
         proxy_url,

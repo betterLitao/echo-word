@@ -290,7 +290,6 @@ fn get_selected_text_windows() -> Result<String, String> {
 
 #[cfg(target_os = "windows")]
 fn try_read_selection_via_uia() -> Result<String, String> {
-    use windows::core::*;
     use windows::Win32::System::Com::*;
     use windows::Win32::UI::Accessibility::*;
 

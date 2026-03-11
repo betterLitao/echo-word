@@ -14,10 +14,11 @@ pub fn start_global_selection_watcher(app: tauri::AppHandle) {
     let _ = GLOBAL_SELECTION_WATCHER_STARTED.set(());
 
     thread::spawn(move || {
+        use std::ptr;
         use std::sync::Mutex;
-        use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM, HINSTANCE};
+        use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM, HINSTANCE, HWND};
         use windows_sys::Win32::UI::WindowsAndMessaging::{
-            CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK, WH_MOUSE_LL,
+            CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, WH_MOUSE_LL,
             WM_LBUTTONUP,
         };
 
@@ -42,18 +43,18 @@ pub fn start_global_selection_watcher(app: tauri::AppHandle) {
 
             unsafe {
                 let hook = HOOK_HANDLE.lock().unwrap();
-                CallNextHookEx(hook.unwrap_or(0), code, wparam, lparam)
+                CallNextHookEx(hook.unwrap_or(0) as _, code, wparam, lparam)
             }
         }
 
         unsafe {
             let hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), 0 as HINSTANCE, 0);
-            if hook == 0 {
+            if hook.is_null() {
                 eprintln!("Failed to set mouse hook");
                 return;
             }
 
-            *HOOK_HANDLE.lock().unwrap() = Some(hook);
+            *HOOK_HANDLE.lock().unwrap() = Some(hook as isize);
 
             // 消息循环
             use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -61,14 +62,14 @@ pub fn start_global_selection_watcher(app: tauri::AppHandle) {
             };
 
             let mut msg: MSG = std::mem::zeroed();
-            while GetMessageW(&mut msg, 0, 0, 0) > 0 {
+            while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
 
             // 清理
             if let Some(h) = *HOOK_HANDLE.lock().unwrap() {
-                UnhookWindowsHookEx(h);
+                UnhookWindowsHookEx(h as _);
             }
         }
     });
