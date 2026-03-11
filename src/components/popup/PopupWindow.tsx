@@ -27,30 +27,55 @@ export function PopupWindow() {
 
   const [isHovering, setIsHovering] = useState(false)
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const popupRef = useRef<HTMLDivElement | null>(null)
 
-  // 弹窗显示后，点击外部区域立即隐藏
+  // 鼠标移出后 800ms 自动关闭
+  useEffect(() => {
+    if (!isHovering && result) {
+      hideTimerRef.current = setTimeout(() => {
+        void hidePopup()
+      }, 800)
+    } else {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+        hideTimerRef.current = null
+      }
+    }
+
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current)
+      }
+    }
+  }, [isHovering, result])
+
+  // 点击弹窗外部立即关闭
   useEffect(() => {
     if (!result) {
       return
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      // 检查是否点击在弹窗外部
-      if (target.closest('.popup-content')) {
+      if (!popupRef.current) {
         return
       }
+
+      // 检查点击是否在弹窗内部
+      if (popupRef.current.contains(event.target as Node)) {
+        return
+      }
+
       void hidePopup()
     }
 
     // 延迟添加监听器，避免立即触发
     const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('click', handleClickOutside, true)
     }, 100)
 
     return () => {
       clearTimeout(timer)
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('click', handleClickOutside, true)
     }
   }, [result])
 
@@ -141,7 +166,8 @@ export function PopupWindow() {
       className="min-h-[100dvh] bg-transparent p-4 text-slate-50"
     >
       <div
-        className="popup-content relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl"
+        ref={popupRef}
+        className="relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
