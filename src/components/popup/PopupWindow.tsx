@@ -275,7 +275,7 @@ export function PopupWindow() {
         ) : null}
 
         {result && canFavorite ? (
-          <div className="relative mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+          <div className="relative mt-2 flex items-center gap-2 border-t border-white/10 pt-2">
             <ActionBar
               containerRef={actionBarRef}
               favoriteLabel={favoriteLabel}
