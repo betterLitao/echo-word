@@ -132,116 +132,12 @@ export const defaultSettings: Settings = {
 
 export type FavoriteExportFormat = 'csv' | 'json' | 'anki'
 
-const demoDictionary: Record<string, TranslationResult> = {
-  ephemeral: {
-    source_text: 'ephemeral',
-    translated_text: 'adj. 短暂的；转瞬即逝的',
-    provider: 'ecdict',
-    provider_label: 'ECDICT 离线词典',
-    mode: 'word',
-    notice: '已按单词模式解析',
-    word_detail: {
-      phonetic_us: '/ɪˈfemərəl/',
-      phonetic_uk: '/ɪˈfemərəl/',
-      chinese_phonetic: '一 · 飞 · 摸 · 若 · 了',
-      pinyin_phonetic: 'i-f-ei-m-e-r-e-l',
-      definitions: ['adj. 短暂的', 'adj. 转瞬即逝的'],
-      pos: 'adj.',
-    },
-  },
-  think: {
-    source_text: 'think',
-    translated_text: 'v. 想；思考；认为',
-    provider: 'ecdict',
-    provider_label: 'ECDICT 离线词典',
-    mode: 'word',
-    notice: '已按单词模式解析',
-    word_detail: {
-      phonetic_us: '/θɪŋk/',
-      phonetic_uk: '/θɪŋk/',
-      chinese_phonetic: '[θ咬舌送气] · 一 · 嗯 · 克',
-      pinyin_phonetic: 'th-i-ng-k',
-      definitions: ['v. 想', 'v. 思考', 'v. 认为'],
-      pos: 'v.',
-    },
-  },
-  cache: {
-    source_text: 'cache',
-    translated_text: 'n. 缓存；贮藏物',
-    provider: 'ecdict',
-    provider_label: 'ECDICT 离线词典',
-    mode: 'word',
-    from_cache: true,
-    notice: '本条结果来自前端演示缓存',
-    word_detail: {
-      phonetic_us: '/kæʃ/',
-      phonetic_uk: '/kæʃ/',
-      chinese_phonetic: '克 · 哎 · 时',
-      pinyin_phonetic: 'k-ai-sh',
-      definitions: ['n. 缓存', 'n. 贮藏物'],
-      pos: 'n.',
-    },
-  },
-}
-
-const demoSentenceDictionary: Record<string, TranslationResult> = {
-  'this feature keeps your focus inside the editor.': {
-    source_text: 'This feature keeps your focus inside the editor.',
-    translated_text: '这个功能会把你的注意力尽量留在编辑器内部。',
-    provider: 'deepl',
-    provider_label: 'DeepL 演示结果',
-    mode: 'sentence',
-    notice: '已按句子模式解析',
-    alternatives: [
-      {
-        provider: 'tencent',
-        provider_label: '腾讯演示结果',
-        translated_text: '这个特性会让你的注意力持续留在编辑器里。',
-      },
-    ],
-  },
-  'the cache should prevent duplicate requests.': {
-    source_text: 'The cache should prevent duplicate requests.',
-    translated_text: '缓存应该避免重复请求。',
-    provider: 'deepl',
-    provider_label: 'DeepL 演示结果',
-    mode: 'sentence',
-    from_cache: true,
-    notice: '演示缓存已命中，跳过了重复请求。',
-  },
-}
-
 export function resolveTranslationMode(mode: TranslationMode, text: string): ResolvedTranslationMode {
   if (mode !== 'auto') {
     return mode
   }
 
   return /\s/.test(text.trim()) ? 'sentence' : 'word'
-}
-
-function buildDemoSentence(text: string, requestedMode: TranslationMode): TranslationResult {
-  const normalized = text.trim().toLowerCase()
-  const matched = demoSentenceDictionary[normalized]
-  if (matched) {
-    return matched
-  }
-
-  const resolvedMode = resolveTranslationMode(requestedMode, text)
-  if (resolvedMode === 'word') {
-    const wordResult = demoDictionary[normalized]
-    if (wordResult) {
-      return wordResult
-    }
-  }
-
-  return {
-    source_text: text.trim(),
-    translated_text: `这是浏览器演示模式下的句子译文：${text.trim()}`,
-    provider: 'deepl',
-    provider_label: 'DeepL 演示结果',
-    mode: 'sentence',
-    notice: '这是前端演示数据，等待 Rust 侧句子翻译链路接入。',
-  }
 }
 
 export function getResultProviderLabel(result: Pick<TranslationResult, 'provider' | 'provider_label'>) {
@@ -328,22 +224,8 @@ export async function requestSelectionTranslate() {
 }
 
 export async function translateText(text: string, mode: TranslationMode = 'auto') {
-  const normalized = text.trim().toLowerCase()
   if (!isTauriRuntime()) {
-    const resolvedMode = resolveTranslationMode(mode, text)
-    if (resolvedMode === 'word') {
-      const result = demoDictionary[normalized]
-      if (result) {
-        return {
-          ...result,
-          source_text: text.trim(),
-          notice: mode === 'auto' ? '自动模式已切换为单词翻译。' : result.notice,
-        }
-      }
-      throw new Error('浏览器调试模式仅内置了 ephemeral / think / cache 三个示例词')
-    }
-
-    return buildDemoSentence(text, mode)
+    throw new Error('翻译功能仅可在 Tauri 环境中使用')
   }
 
   return invoke<TranslationResult>('translate', { text, mode })
@@ -351,7 +233,7 @@ export async function translateText(text: string, mode: TranslationMode = 'auto'
 
 export async function translateAndShowPopup(text: string, mode: TranslationMode = 'auto') {
   if (!isTauriRuntime()) {
-    return translateText(text, mode)
+    throw new Error('翻译功能仅可在 Tauri 环境中使用')
   }
 
   return invoke<TranslationResult>('translate_and_show_popup', { text, mode })

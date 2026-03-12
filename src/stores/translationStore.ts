@@ -29,7 +29,6 @@ interface TranslationState {
   applyError: (message: string) => void
   translate: (text?: string, requestedMode?: TranslationMode) => Promise<TranslationResult | null>
   translateCurrentMode: (mode: TranslationMode) => Promise<TranslationResult | null>
-  seedDemo: () => void
   clear: () => void
 }
 
@@ -167,9 +166,6 @@ export const useTranslationStore = create<TranslationState>((set, get) => ({
     }
   },
   translateCurrentMode: async (mode) => get().translate(get().input, mode),
-  seedDemo: () => {
-    void get().translate(get().input, 'auto')
-  },
   clear: () =>
     set({
       result: null,

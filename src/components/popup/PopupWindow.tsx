@@ -23,7 +23,6 @@ export function PopupWindow() {
   const streaming = useTranslationStore((state) => state.streaming)
   const streamText = useTranslationStore((state) => state.streamText)
   const error = useTranslationStore((state) => state.error)
-  const seedDemo = useTranslationStore((state) => state.seedDemo)
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
 
@@ -123,12 +122,6 @@ export function PopupWindow() {
     },
     [setMode, translateCurrentMode],
   )
-
-  useEffect(() => {
-    if (!isTauriRuntime()) {
-      seedDemo()
-    }
-  }, [seedDemo])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
