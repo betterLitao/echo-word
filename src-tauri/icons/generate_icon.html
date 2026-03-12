@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EchoWord Icon Generator</title>
+</head>
+<body>
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const size = 1024;
+        
+        // 背景渐变
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#10b981');    // emerald-500
+        gradient.addColorStop(0.5, '#06b6d4');  // cyan-500
+        gradient.addColorStop(1, '#3b82f6');    // blue-500
+        
+        // 绘制圆角矩形背景
+        const radius = size * 0.18;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, radius);
+        ctx.fill();
+        
+        // 绘制声波纹理
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = size * 0.015;
+        
+        for (let i = 0; i < 5; i++) {
+            const y = size * (0.3 + i * 0.1);
+            const amplitude = size * (0.08 - i * 0.01);
+            const frequency = 3 + i * 0.5;
+            
+            ctx.beginPath();
+            for (let x = 0; x <= size; x += 2) {
+                const wave = Math.sin((x / size) * Math.PI * frequency) * amplitude;
+                const yPos = y + wave;
+                if (x === 0) {
+                    ctx.moveTo(x, yPos);
+                } else {
+                    ctx.lineTo(x, yPos);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        // 绘制字母 "E" (现代几何风格)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.lineWidth = size * 0.08;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        const centerX = size * 0.5;
+        const centerY = size * 0.55;
+        const letterSize = size * 0.35;
+        
+        // E 的三条横线
+        const lineWidth = letterSize * 0.7;
+        const lineHeight = letterSize * 0.08;
+        const spacing = letterSize * 0.35;
+        
+        // 上横线
+        ctx.fillRect(centerX - lineWidth/2, centerY - spacing, lineWidth, lineHeight);
+        // 中横线
+        ctx.fillRect(centerX - lineWidth/2, centerY - lineHeight/2, lineWidth * 0.6, lineHeight);
+        // 下横线
+        ctx.fillRect(centerX - lineWidth/2, centerY + spacing - lineHeight, lineWidth, lineHeight);
+        
+        // 左竖线
+        ctx.fillRect(centerX - lineWidth/2, centerY - spacing, lineHeight, spacing * 2);
+        
+        // 导出为 PNG
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'icon-1024.png';
+            a.click();
+        });
+        
+        console.log('Icon generated! Check downloads.');
+    </script>
+</body>
+</html>
