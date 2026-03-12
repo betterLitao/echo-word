@@ -12,11 +12,26 @@
   "app": {
     "windows": [
       {
+        "label": "splashscreen",
+        "title": "EchoWord",
+        "url": "/splashscreen.html",
+        "width": 400,
+        "height": 300,
+        "center": true,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": true
+      },
+      {
         "label": "main",
         "title": "EchoWord",
         "url": "/",
         "width": 1200,
         "height": 720,
+        "center": true,
         "visible": false,
         "resizable": true,
         "decorations": false

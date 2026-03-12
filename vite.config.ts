@@ -9,4 +9,13 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
   },
+  publicDir: 'public',
+  build: {
+    rollupOptions: {
+      input: {
+        main: './index.html',
+        splashscreen: './splashscreen.html',
+      },
+    },
+  },
 })

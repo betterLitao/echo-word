@@ -78,6 +78,21 @@ pub(crate) fn rebuild_tray(app: &tauri::AppHandle) -> Result<(), String> {
 fn wire_main_window(app: &tauri::App) {
     if let Some(window) = app.get_webview_window("main") {
         let app_handle = app.handle().clone();
+
+        // 监听主窗口加载完成事件
+        let app_for_ready = app_handle.clone();
+        window.once("main-window-ready", move |_| {
+            // 关闭闪屏
+            if let Some(splashscreen) = app_for_ready.get_webview_window("splashscreen") {
+                let _ = splashscreen.close();
+            }
+            // 显示主窗口
+            if let Some(main_window) = app_for_ready.get_webview_window("main") {
+                let _ = main_window.show();
+                let _ = main_window.set_focus();
+            }
+        });
+
         window.on_window_event(move |event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -86,9 +101,6 @@ fn wire_main_window(app: &tauri::App) {
                 }
             }
         });
-
-        let _ = window.show();
-        let _ = window.set_focus();
     }
 }
 
