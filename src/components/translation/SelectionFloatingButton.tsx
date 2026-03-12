@@ -1,6 +1,7 @@
 import { Translate } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 interface SelectionFloatingButtonProps {
   onTranslate: (text: string) => void
@@ -85,7 +86,7 @@ export function SelectionFloatingButton({ onTranslate }: SelectionFloatingButton
     setVisible(false)
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {visible && position && (
         <motion.button
@@ -103,6 +104,7 @@ export function SelectionFloatingButton({ onTranslate }: SelectionFloatingButton
           <Translate size={18} weight="bold" />
         </motion.button>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
