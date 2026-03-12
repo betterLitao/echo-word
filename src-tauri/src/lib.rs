@@ -8,7 +8,7 @@ mod utils;
 use tauri::{
     menu::{CheckMenuItem, Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Listener, Manager,
 };
 use tauri_plugin_autostart::MacosLauncher;
 
