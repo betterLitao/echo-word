@@ -16,7 +16,7 @@ pub fn start_global_selection_watcher(app: tauri::AppHandle) {
     thread::spawn(move || {
         use std::ptr;
         use std::sync::Mutex;
-        use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM, HINSTANCE, HWND};
+        use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM, HINSTANCE};
         use windows_sys::Win32::UI::WindowsAndMessaging::{
             CallNextHookEx, SetWindowsHookExW, UnhookWindowsHookEx, WH_MOUSE_LL,
             WM_LBUTTONUP,
@@ -99,22 +99,53 @@ fn handle_mouse_up(app: tauri::AppHandle) {
         return;
     }
 
-    // 获取鼠标位置
-    use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
+    // 获取光标位置（选中文字的位置）
+    use windows_sys::Win32::UI::WindowsAndMessaging::{GetGUIThreadInfo, GUITHREADINFO};
+    use windows_sys::Win32::Graphics::Gdi::ClientToScreen;
     use windows_sys::Win32::Foundation::POINT;
 
-    let mut cursor_pos: POINT = unsafe { std::mem::zeroed() };
-    unsafe {
-        if GetCursorPos(&mut cursor_pos) == 0 {
-            return;
+    let mut gui_info: GUITHREADINFO = unsafe { std::mem::zeroed() };
+    gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
+
+    let (x, y) = unsafe {
+        if GetGUIThreadInfo(0, &mut gui_info) != 0 && !gui_info.hwndCaret.is_null() {
+            // 获取到了 caret 位置，转换为屏幕坐标
+            let mut pt = POINT {
+                x: gui_info.rcCaret.left,
+                y: gui_info.rcCaret.top,
+            };
+            if ClientToScreen(gui_info.hwndCaret, &mut pt) != 0 {
+                (pt.x, pt.y)
+            } else {
+                // 转换失败，使用鼠标位置
+                get_cursor_position()
+            }
+        } else {
+            // 获取失败，使用鼠标位置
+            get_cursor_position()
         }
-    }
+    };
 
     // 保存待翻译文本
     *PENDING_TRANSLATION_TEXT.lock().unwrap() = Some(text);
 
     // 显示翻译图标窗口
-    let _ = show_translation_icon(&app, cursor_pos.x, cursor_pos.y);
+    let _ = show_translation_icon(&app, x, y);
+}
+
+#[cfg(target_os = "windows")]
+fn get_cursor_position() -> (i32, i32) {
+    use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
+    use windows_sys::Win32::Foundation::POINT;
+
+    let mut cursor_pos: POINT = unsafe { std::mem::zeroed() };
+    unsafe {
+        if GetCursorPos(&mut cursor_pos) != 0 {
+            (cursor_pos.x, cursor_pos.y)
+        } else {
+            (0, 0)
+        }
+    }
 }
 
 fn show_translation_icon(app: &tauri::AppHandle, x: i32, y: i32) -> Result<(), String> {
