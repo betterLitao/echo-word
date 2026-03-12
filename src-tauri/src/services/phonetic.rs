@@ -169,7 +169,8 @@ pub fn to_pinyin_hint(phonetic: &str) -> String {
     }
 
     if parts.is_empty() {
-        return "".to_string();
+        // 无法转换时返回原始音标
+        return phonetic.to_string();
     }
 
     parts.join("-")

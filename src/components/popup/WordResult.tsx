@@ -9,9 +9,24 @@ export function WordResult({ data }: WordResultProps) {
   const mainDefinitions = data.word_detail?.definitions?.slice(0, 3) ?? []
   const [showPinyin, setShowPinyin] = useState(false)
 
-  const phoneticDisplay = showPinyin
-    ? data.word_detail?.pinyin_phonetic
-    : data.word_detail?.chinese_phonetic
+  const chinesePhonetic = data.word_detail?.chinese_phonetic
+  const pinyinPhonetic = data.word_detail?.pinyin_phonetic
+
+  // 调试日志
+  console.log('=== WordResult Debug ===')
+  console.log('source_text:', data.source_text)
+  console.log('chinese_phonetic:', chinesePhonetic)
+  console.log('pinyin_phonetic:', pinyinPhonetic)
+  console.log('pinyin_phonetic type:', typeof pinyinPhonetic)
+  console.log('pinyin_phonetic length:', pinyinPhonetic?.length)
+
+  // 优先显示中文谐音,如果用户切换到拼音模式且拼音存在则显示拼音
+  const phoneticDisplay = showPinyin && pinyinPhonetic ? pinyinPhonetic : chinesePhonetic
+  // 临时强制显示切换按钮用于测试
+  const canToggle = true // !!(chinesePhonetic && pinyinPhonetic)
+
+  console.log('phoneticDisplay:', phoneticDisplay)
+  console.log('canToggle:', canToggle)
 
   return (
     <div className="space-y-3">
@@ -21,16 +36,20 @@ export function WordResult({ data }: WordResultProps) {
           {data.word_detail?.phonetic_us ? (
             <span className="text-emerald-300">{data.word_detail.phonetic_us}</span>
           ) : null}
-          {phoneticDisplay ? (
+          {chinesePhonetic ? (
             <>
               <span>·</span>
-              <button
-                onClick={() => setShowPinyin(!showPinyin)}
-                className="text-slate-300 transition-colors hover:text-emerald-300"
-                title={showPinyin ? '切换到中文谐音' : '切换到拼音'}
-              >
-                {phoneticDisplay}
-              </button>
+              {canToggle ? (
+                <button
+                  onClick={() => setShowPinyin(!showPinyin)}
+                  className="cursor-pointer text-slate-300 underline decoration-dotted transition-colors hover:text-emerald-300"
+                  title={showPinyin ? '切换到中文谐音' : '切换到拼音'}
+                >
+                  {phoneticDisplay}
+                </button>
+              ) : (
+                <span className="text-slate-300">{phoneticDisplay}</span>
+              )}
             </>
           ) : null}
         </div>

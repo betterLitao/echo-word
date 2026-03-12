@@ -1,4 +1,5 @@
 import { Copy, Sparkle, X } from '@phosphor-icons/react'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTauriTranslationEvents } from '../../hooks/useTauriTranslationEvents'
 import {
@@ -26,8 +27,6 @@ export function PopupWindow() {
   const setMode = useTranslationStore((state) => state.setMode)
   const translateCurrentMode = useTranslationStore((state) => state.translateCurrentMode)
 
-  const [isHovering, setIsHovering] = useState(false)
-  const hideTimerRef = useRef<NodeJS.Timeout | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
   const actionBarRef = useRef<HTMLDivElement | null>(null)
 
@@ -45,53 +44,21 @@ export function PopupWindow() {
     [actionScope],
   )
 
-  // 鼠标移出后 800ms 自动关闭
+  // 窗口失焦时立即关闭
   useEffect(() => {
-    if (!isHovering && result) {
-      hideTimerRef.current = setTimeout(() => {
-        void hidePopup()
-      }, 800)
-    } else {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current)
-        hideTimerRef.current = null
-      }
-    }
-
-    return () => {
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current)
-      }
-    }
-  }, [isHovering, result])
-
-  // 点击弹窗外部立即关闭
-  useEffect(() => {
-    if (!result) {
+    if (!isTauriRuntime() || !result) {
       return
     }
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!popupRef.current) {
-        return
+    const appWindow = getCurrentWindow()
+    const unlisten = appWindow.onFocusChanged(({ payload: focused }) => {
+      if (!focused) {
+        void hidePopup()
       }
-
-      // 检查点击是否在弹窗内部
-      if (popupRef.current.contains(event.target as Node)) {
-        return
-      }
-
-      void hidePopup()
-    }
-
-    // 延迟添加监听器，避免立即触发
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside, true)
-    }, 100)
+    })
 
     return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClickOutside, true)
+      void unlisten.then((fn) => fn())
     }
   }, [result])
 
@@ -219,16 +186,12 @@ export function PopupWindow() {
       <div
         ref={popupRef}
         className="relative mx-auto max-w-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(2,6,23,0.9))] p-4 shadow-[0_24px_60px_-20px_rgba(2,6,23,0.96)] backdrop-blur-2xl"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         <div className="pointer-events-none absolute inset-px rounded-[calc(1rem-1px)] border border-white/6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
 
         {/* 右上角复制和关闭按钮 */}
-        <div
-          className="absolute right-2 top-2 z-10 flex gap-1 transition-opacity duration-200"
-          style={{ opacity: isHovering ? 1 : 0 }}
-        >
+        <div className="absolute right-2 top-2 z-10 flex gap-1">
+
           <button
             onClick={handleCopy}
             disabled={!result}

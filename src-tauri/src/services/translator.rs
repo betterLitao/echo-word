@@ -265,6 +265,25 @@ fn build_word_result(
     let phonetic_text = entry.phonetic.clone().unwrap_or_default();
     let definitions = split_definitions(&translation);
 
+    let chinese_phonetic = if phonetic_text.is_empty() {
+        "暂无音标谐音".into()
+    } else {
+        phonetic::to_chinese_hint(&phonetic_text)
+    };
+
+    let pinyin_phonetic = if phonetic_text.is_empty() {
+        String::new()
+    } else {
+        phonetic::to_pinyin_hint(&phonetic_text)
+    };
+
+    // 调试日志
+    eprintln!("=== build_word_result ===");
+    eprintln!("source_text: {}", source_text);
+    eprintln!("phonetic_text: {}", phonetic_text);
+    eprintln!("chinese_phonetic: {}", chinese_phonetic);
+    eprintln!("pinyin_phonetic: {}", pinyin_phonetic);
+
     TranslationResult {
         source_text,
         translated_text: translation,
@@ -274,16 +293,8 @@ fn build_word_result(
         word_detail: Some(WordDetail {
             phonetic_us: entry.phonetic.clone(),
             phonetic_uk: entry.phonetic.clone(),
-            chinese_phonetic: if phonetic_text.is_empty() {
-                "暂无音标谐音".into()
-            } else {
-                phonetic::to_chinese_hint(&phonetic_text)
-            },
-            pinyin_phonetic: if phonetic_text.is_empty() {
-                String::new()
-            } else {
-                phonetic::to_pinyin_hint(&phonetic_text)
-            },
+            chinese_phonetic,
+            pinyin_phonetic,
             definitions,
             pos: entry.pos.or(entry.exchange),
         }),
