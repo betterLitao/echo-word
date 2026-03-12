@@ -277,13 +277,6 @@ fn build_word_result(
         phonetic::to_pinyin_hint(&phonetic_text)
     };
 
-    // 调试日志
-    eprintln!("=== build_word_result ===");
-    eprintln!("source_text: {}", source_text);
-    eprintln!("phonetic_text: {}", phonetic_text);
-    eprintln!("chinese_phonetic: {}", chinese_phonetic);
-    eprintln!("pinyin_phonetic: {}", pinyin_phonetic);
-
     TranslationResult {
         source_text,
         translated_text: translation,

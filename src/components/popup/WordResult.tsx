@@ -12,21 +12,9 @@ export function WordResult({ data }: WordResultProps) {
   const chinesePhonetic = data.word_detail?.chinese_phonetic
   const pinyinPhonetic = data.word_detail?.pinyin_phonetic
 
-  // 调试日志
-  console.log('=== WordResult Debug ===')
-  console.log('source_text:', data.source_text)
-  console.log('chinese_phonetic:', chinesePhonetic)
-  console.log('pinyin_phonetic:', pinyinPhonetic)
-  console.log('pinyin_phonetic type:', typeof pinyinPhonetic)
-  console.log('pinyin_phonetic length:', pinyinPhonetic?.length)
-
   // 优先显示中文谐音,如果用户切换到拼音模式且拼音存在则显示拼音
   const phoneticDisplay = showPinyin && pinyinPhonetic ? pinyinPhonetic : chinesePhonetic
-  // 临时强制显示切换按钮用于测试
-  const canToggle = true // !!(chinesePhonetic && pinyinPhonetic)
-
-  console.log('phoneticDisplay:', phoneticDisplay)
-  console.log('canToggle:', canToggle)
+  const canToggle = !!(chinesePhonetic && pinyinPhonetic)
 
   return (
     <div className="space-y-3">
